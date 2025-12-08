@@ -6,23 +6,21 @@ permalink: /about/
 
 
 
-I was born in Wuhan, Hubei province, and left Wuhan at the age of 23, and came to Shenzhen alone to intern and work until now. I work at Tencent under the fancy name **bourneli**, known as **2rd Bro** for my "not bad performance" with **Guan Yu** in King of Glory. My job title is Senior Researcher in Applied Research, but I always consider myself a machine learning engineer.
-
-In Sep. 2021, after 10 years working in Tencent Shenzhen Headquarter, I came to Singapore alone again to begin a new career, in which I am the pioneer to explore the global game markets for Tencent IEG Global business. 
+Life goes on，牛一直在路上……
 
 
 
 ### Hobbies
 
-* Basketball, 3-points enthusiast
+* 撸铁
 
-* Unarmed Fitness
+* 爬山
 
-* Swimming
+* 露营
 
-* Jogging
+* 美恐
 
-* Play with my kid, White
+* 越野
 
   
 
