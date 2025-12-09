@@ -9,13 +9,10 @@
 title: Mcyo on the road
 email: ly-fighting@163.com
 description: > # this means to ignore newlines until "baseurl:"
- Corporate digital transformation
+Corporate digital transformation
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "http://https://mcyo-yoyoyo.github.io/LY" # the base hostname & protocol for your site
 github_username:  mcyo-yoyoyo
-linkedin_username: mcyo-yoyoyo
-stackoverflow_username: mcyo-yoyoyo
-
 
 # Build settings
 markdown: kramdown
