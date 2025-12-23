@@ -294,110 +294,42 @@
             );
 
             // 新增：文章详情浏览组件
-          const PostDetailView = ({ post, onBack }) => {
-  const [copied, setCopied] = React.useState(false);
-  const [showWechatTip, setShowWechatTip] = React.useState(false);
+            const PostDetailView = ({ post, onBack }) => (
+                <div className="page-enter max-w-4xl mx-auto">
+                    <button 
+                        onClick={onBack}
+                        className="flex items-center text-gray-400 hover:text-blue-600 mb-8 transition-colors group"
+                    >
+                        <span className="p-2 bg-white rounded-full shadow-sm mr-3 group-hover:bg-blue-50 transition-colors">
+                            <Icons.Back />
+                        </span>
+                        <span className="text-sm font-bold tracking-widest uppercase">BACK TO LIST</span>
+                    </button>
+                    
+                    <article className="bg-white rounded-3xl p-6 md:p-12 shadow-sm border border-gray-100">
+                        <div className="mb-8">
+                            <span className="inline-block bg-blue-50 text-blue-600 text-xs px-4 py-1.5 rounded-full font-bold uppercase tracking-wider mb-4">
+                                {post.category || 'INSIGHT'}
+                            </span>
+                            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">{post.title}</h1>
+                            <div className="flex items-center text-gray-400 text-sm border-b border-gray-50 pb-8">
+                                <span className="mr-4">Published on {post.timestamp ? new Date(post.timestamp).toLocaleDateString('zh-CN') : '...'}</span>
+                                <span className="px-3 py-1 bg-gray-50 rounded-md text-[10px] text-gray-400 uppercase font-bold tracking-tighter">Verified Content</span>
+                            </div>
+                        </div>
+                        
+                        <div 
+                            className="prose max-w-none prose-blue prose-img:rounded-2xl prose-h2:text-2xl prose-p:text-gray-600 prose-p:leading-loose" 
+                            dangerouslySetInnerHTML={{__html: post.content}}
+                        ></div>
 
-  // 复制链接功能
-  const handleCopyLink = () => {
-    const url = window.location.href;
-    const textArea = document.createElement("textarea");
-    textArea.value = url;
-    document.body.appendChild(textArea);
-    textArea.select();
-    try {
-      document.execCommand('copy');
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('无法复制链接', err);
-    }
-    document.body.removeChild(textArea);
-  };
-
-  return (
-    <div className="page-enter max-w-4xl mx-auto">
-      {/* 返回按钮 */}
-      <button
-        onClick={onBack}
-        className="flex items-center text-gray-400 hover:text-blue-600 mb-8 transition-colors group"
-      >
-        <span className="p-2 bg-white rounded-full shadow-sm mr-3 group-hover:bg-blue-50 transition-colors">
-          <Icons.Back />
-        </span>
-        <span className="text-sm font-bold tracking-widest uppercase">BACK TO LIST</span>
-      </button>
-
-      <article className="bg-white rounded-3xl p-6 md:p-12 shadow-sm border border-gray-100 relative">
-        <div className="mb-8">
-          <span className="inline-block bg-blue-50 text-blue-600 text-xs px-4 py-1.5 rounded-full font-bold uppercase tracking-wider mb-4">
-            {post.category || 'INSIGHT'}
-          </span>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
-            {post.title}
-          </h1>
-          
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-50 pb-8">
-            <div className="flex items-center text-gray-400 text-sm">
-              <span className="mr-4">Published on {post.timestamp ? new Date(post.timestamp).toLocaleDateString('zh-CN') : '...'}</span>
-              <span className="px-3 py-1 bg-gray-50 rounded-md text-[10px] text-gray-400 uppercase font-bold tracking-tighter">Verified Content</span>
-            </div>
-
-            {/* 新增：分享按钮组 */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleCopyLink}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 text-gray-500 hover:bg-gray-100 transition-all text-xs font-bold"
-              >
-                {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
-                {copied ? '已复制' : '复制链接'}
-              </button>
-              <button
-                onClick={() => setShowWechatTip(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#07C160]/10 text-[#07C160] hover:bg-[#07C160]/20 transition-all text-xs font-bold"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                转发朋友圈
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* 文章正文 */}
-        <div
-          className="prose max-w-none prose-blue prose-img:rounded-2xl prose-h2:text-2xl prose-p:text-gray-600 prose-p:leading-loose"
-          dangerouslySetInnerHTML={{ __html: post.content }}
-        ></div>
-
-        {/* 页脚 */}
-        <div className="mt-16 pt-8 border-t border-gray-50 flex justify-between items-center text-xs text-gray-300">
-          <p>© {new Date().getFullYear()} Mcyo Digital Transformation Insight</p>
-          <p className="uppercase tracking-widest">End of Article</p>
-        </div>
-      </article>
-
-      {/* 微信分享引导弹窗 */}
-      {showWechatTip && (
-        <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-          onClick={() => setShowWechatTip(false)}
-        >
-          <div className="relative w-full max-w-sm overflow-hidden rounded-2xl bg-white p-6 text-center shadow-2xl animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
-            <button className="absolute right-4 top-4 text-gray-400" onClick={() => setShowWechatTip(false)}>
-              <X className="h-5 w-5" />
-            </button>
-            <div className="mb-4 flex justify-center">
-              <div className="rounded-full bg-[#07C160]/10 p-3"><Share2 className="h-8 w-8 text-[#07C160]" /></div>
-            </div>
-            <h3 className="mb-2 text-lg font-bold text-gray-900">分享到朋友圈</h3>
-            <p className="mb-6 text-sm text-gray-500">点击浏览器工具栏或微信右上角的 <span className="font-bold">“···”</span> 按钮，选择 <span className="font-bold text-[#07C160]">“分享到朋友圈”</span>。</p>
-            <button onClick={() => setShowWechatTip(false)} className="w-full rounded-xl bg-[#07C160] py-3 font-bold text-white">我知道了</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+                        <div className="mt-16 pt-8 border-t border-gray-50 flex justify-between items-center text-xs text-gray-300">
+                            <p>© {new Date().getFullYear()} Mcyo Digital Transformation Insight</p>
+                            <p className="uppercase tracking-widest">End of Article</p>
+                        </div>
+                    </article>
+                </div>
+            );
 
             return (
                 <div className="min-h-screen pb-20">
