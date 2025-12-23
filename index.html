@@ -11,8 +11,8 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- LeanCloud SDK (替换了 Firebase) -->
-    <script src="//code.bdstatic.com/npm/leancloud-storage@4.15.0/dist/av-min.js"></script>
+    <!-- LeanCloud SDK (修复了加载失败的问题，改用更稳定的 npmmirror 镜像) -->
+    <script src="https://registry.npmmirror.com/leancloud-storage/4.15.0/files/dist/av-min.js"></script>
 
     <style>
         body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background-color: #f8f9fa; -webkit-tap-highlight-color: transparent; }
@@ -36,27 +36,29 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // ==================== 配置中心 (请修改此处) ====================
+        // ==================== 配置中心 ====================
         const ADMIN_EMAIL = "ly-fighting@163.com"; 
 
-        // ⚠️ 请在此处填入你在 LeanCloud 控制台获取的 keys
         const LEANCLOUD_CONFIG = {
             appId: "Fks113eI3yEDO04W2CJ23d5f-gzGzoHsz", 
             appKey: "OlWMWKIhgyeYYdNwonZCIuFh",
-            // 如果是国际版节点，serverURL 可以不填或者填官方提供的。
-            // 如果是国内节点，必须填入你绑定的备案域名，例如 "https://api.mydomain.com"
             serverURL: "https://fks113ei.lc-cn-n1-shared.com" 
         };
 
-        // 初始化 LeanCloud
-        if (!window.AV_INITIALIZED) {
-            try {
-                AV.init(LEANCLOUD_CONFIG);
-                window.AV_INITIALIZED = true;
-            } catch (e) {
-                console.error("LeanCloud Init Error", e);
+        // 安全初始化 LeanCloud
+        const initLeanCloud = () => {
+            if (typeof AV !== 'undefined' && !window.AV_INITIALIZED) {
+                try {
+                    AV.init(LEANCLOUD_CONFIG);
+                    window.AV_INITIALIZED = true;
+                    return true;
+                } catch (e) {
+                    console.error("LeanCloud Init Error", e);
+                    return false;
+                }
             }
-        }
+            return typeof AV !== 'undefined';
+        };
 
         // 图标组件
         const Icons = {
@@ -70,7 +72,7 @@
         };
 
         const App = () => {
-            const [user, setUser] = useState(AV.User.current()); // 初始化获取当前用户
+            const [user, setUser] = useState(null);
             const [tab, setTab] = useState('about');
             const [posts, setPosts] = useState([]);
             const [loading, setLoading] = useState(true);
@@ -80,23 +82,31 @@
             const [editData, setEditData] = useState({ title: '', content: '', category: '', id: null });
             
             const editorRef = useRef(null);
-            // LeanCloud 验证逻辑：检查邮箱是否匹配
             const isAdmin = user && user.getEmail() === ADMIN_EMAIL;
 
-            // 获取文章列表的函数
+            useEffect(() => {
+                const initialized = initLeanCloud();
+                if (initialized) {
+                    setUser(AV.User.current());
+                    fetchPosts();
+                } else {
+                    setError("SDK 加载失败，请刷新页面或检查网络链接");
+                    setLoading(false);
+                }
+            }, []);
+
             const fetchPosts = async () => {
+                if (typeof AV === 'undefined') return;
                 setLoading(true);
                 try {
-                    const query = new AV.Query('Posts'); // 对应数据库中的 Posts 表
-                    query.descending('createdAt'); // 按创建时间倒序
+                    const query = new AV.Query('Posts');
+                    query.descending('createdAt');
                     const results = await query.find();
-                    const data = results.map(obj => {
-                        return {
-                            id: obj.id,
-                            ...obj.toJSON(),
-                            timestamp: obj.createdAt // LeanCloud 使用 createdAt
-                        };
-                    });
+                    const data = results.map(obj => ({
+                        id: obj.id,
+                        ...obj.toJSON(),
+                        timestamp: obj.createdAt
+                    }));
                     setPosts(data);
                     setLoading(false);
                     setError(null);
@@ -107,30 +117,22 @@
                 }
             };
 
-            useEffect(() => {
-                fetchPosts();
-            }, []); // 仅在组件加载时获取一次，LeanCloud 没有 React 的实时 Hook，需要手动刷新
-
             const handleLogin = async (e) => {
                 e.preventDefault();
                 const email = e.target.email.value;
                 const password = e.target.password.value;
                 
                 try {
-                    // LeanCloud 默认是用户名登录，这里我们先用 email 查一下用户名，或者假设用户注册时用户名就是邮箱
-                    // 为了简化，我们使用邮箱登录的 API
                     await AV.User.loginWithEmail(email, password);
-                    const currentUser = AV.User.current();
-                    setUser(currentUser);
+                    setUser(AV.User.current());
                     setIsLoginOpen(false);
                 } catch (err) {
-                    // 如果邮箱登录失败，尝试用用户名(email字符串)登录作为 fallback
                     try {
                         await AV.User.logIn(email, password);
                         setUser(AV.User.current());
                         setIsLoginOpen(false);
                     } catch (finalErr) {
-                         alert("登录失败: " + finalErr.message + "\n请确保在 LeanCloud 后台 User 表创建了账号。");
+                         alert("登录失败: " + finalErr.message);
                     }
                 }
             };
@@ -152,47 +154,34 @@
 
             const savePost = async () => {
                 const currentContent = editorRef.current ? editorRef.current.innerHTML : editData.content;
-                
-                if (!editData.title || currentContent === "" || currentContent === "<br>") {
+                if (!editData.title || !currentContent || currentContent === "<br>") {
                     return alert("标题和内容不能为空");
                 }
 
                 try {
-                    // 声明 Class
                     const PostObject = AV.Object.extend('Posts');
-                    let post;
-
-                    if (editData.id) {
-                        // 更新模式
-                        post = AV.Object.createWithoutData('Posts', editData.id);
-                    } else {
-                        // 新增模式
-                        post = new PostObject();
-                    }
+                    let post = editData.id ? AV.Object.createWithoutData('Posts', editData.id) : new PostObject();
 
                     post.set('title', editData.title);
                     post.set('content', currentContent);
                     post.set('category', editData.category || '深度洞察');
                     post.set('type', tab);
-                    // createdAt 由 LeanCloud 自动处理
 
                     await post.save();
-                    
                     setIsEditing(false);
                     setEditData({ title: '', content: '', category: '', id: null });
-                    fetchPosts(); // 保存后重新获取列表
+                    fetchPosts();
                 } catch (e) {
-                    console.error("Save Error:", e);
-                    alert("发布失败：请检查您是否已登录且有写入权限。\nError: " + e.message);
+                    alert("发布失败: " + e.message);
                 }
             };
 
             const deletePost = async (id) => {
-                if(!confirm("确定从云端永久删除此内容吗？")) return;
+                if(!confirm("确定删除吗？")) return;
                 try {
                     const post = AV.Object.createWithoutData('Posts', id);
                     await post.destroy();
-                    fetchPosts(); // 删除后刷新
+                    fetchPosts();
                 } catch (e) {
                     alert("删除失败: " + e.message);
                 }
@@ -265,8 +254,8 @@
                             <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start space-x-3 text-red-600 animate-bounce">
                                 <Icons.Warning />
                                 <div className="text-sm">
-                                    <p className="font-bold">云端连接异常</p>
-                                    <p>{error} (请检查AppID/Key是否正确)</p>
+                                    <p className="font-bold">环境异常</p>
+                                    <p>{error}</p>
                                 </div>
                             </div>
                         )}
@@ -295,7 +284,6 @@
                                         <input className="w-full p-4 border-none text-2xl font-bold outline-none placeholder:text-gray-200" placeholder="文章标题" value={editData.title} onChange={e => setEditData({...editData, title: e.target.value})} />
                                         <input className="w-full px-4 text-blue-600 text-sm outline-none border-none placeholder:text-blue-200" placeholder="# 标签 (如: AI、数字化)" value={editData.category} onChange={e => setEditData({...editData, category: e.target.value})} />
                                         
-                                        {/* 富文本工具栏 */}
                                         <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg border-b">
                                             <button onClick={() => execCmd('bold')} className="toolbar-btn" title="加粗"><Icons.Bold /></button>
                                             <button onClick={() => execCmd('formatBlock', 'h2')} className="toolbar-btn font-bold text-sm">H2</button>
@@ -340,7 +328,7 @@
                                                         <h3 className="text-xl font-bold text-gray-800 mb-4 leading-tight group-hover:text-blue-600 transition-colors">{post.title}</h3>
                                                         <div className="text-gray-500 text-sm leading-relaxed line-clamp-4 prose prose-sm mb-6" dangerouslySetInnerHTML={{__html: post.content}}></div>
                                                         <div className="flex items-center justify-between text-[11px] text-gray-300 pt-4 border-t border-gray-50 font-medium">
-                                                            <span>{post.timestamp ? new Date(post.timestamp).toLocaleDateString('zh-CN', {year:'numeric', month:'long', day:'numeric'}) : 'Loading...'}</span>
+                                                            <span>{post.timestamp ? new Date(post.timestamp).toLocaleDateString('zh-CN') : '...'}</span>
                                                             <span className="text-blue-500 font-bold opacity-0 group-hover:opacity-100 transition-all">VIEW DETAIL →</span>
                                                         </div>
                                                     </div>
@@ -358,18 +346,17 @@
                         )}
                     </main>
 
-                    {/* 登录弹窗 */}
                     {isLoginOpen && (
                         <div className="fixed inset-0 bg-blue-900/40 backdrop-blur-md flex items-center justify-center z-[100] p-4">
-                            <form onSubmit={handleLogin} className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm animate-in zoom-in duration-300 border border-white/20">
+                            <form onSubmit={handleLogin} className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm animate-in zoom-in duration-300">
                                 <div className="text-center mb-8">
-                                    <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner"><Icons.Lock /></div>
+                                    <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"><Icons.Lock /></div>
                                     <h3 className="text-2xl font-bold text-gray-800 tracking-tighter">SECURE LOGIN</h3>
-                                    <p className="text-xs text-gray-400 mt-2 uppercase tracking-widest font-medium">仅供管理员访问权限</p>
+                                    <p className="text-xs text-gray-400 mt-2 uppercase tracking-widest font-medium">仅供管理员访问</p>
                                 </div>
                                 <div className="space-y-4">
-                                    <input name="email" type="email" placeholder="ADMIN EMAIL" className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-sm" required />
-                                    <input name="password" type="password" placeholder="PASSWORD" className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-sm" required />
+                                    <input name="email" type="email" placeholder="ADMIN EMAIL" className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm" required />
+                                    <input name="password" type="password" placeholder="PASSWORD" className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm" required />
                                 </div>
                                 <button type="submit" className="w-full bg-blue-900 text-white py-4 rounded-2xl font-bold mt-8 hover:bg-blue-800 transition shadow-xl tracking-widest text-sm uppercase">验证并进入</button>
                                 <button type="button" onClick={() => setIsLoginOpen(false)} className="w-full mt-4 text-gray-400 text-[10px] uppercase font-bold tracking-widest hover:text-gray-600 transition">Close</button>
