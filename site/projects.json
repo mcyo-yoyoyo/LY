@@ -1,0 +1,100 @@
+{
+  "projects": [
+    {
+      "id": "ba",
+      "name": "友为 · 从战略到路标",
+      "cat": "Work",
+      "blurb": "AI Business Architect。从经营战略走到可落地的变革路标。",
+      "live": "https://mcyo-yoyoyo.github.io/BA/",
+      "cover": "covers/ba.png?v=2"
+    },
+    {
+      "id": "ebi",
+      "name": "电商数智驾驶舱",
+      "cat": "Work",
+      "blurb": "电商业务总监的移动数字座舱。经营指标、节奏与决策压进一块屏幕。",
+      "live": "https://mcyo-yoyoyo.github.io/EBI/",
+      "cover": "covers/ebi.png"
+    },
+    {
+      "id": "price",
+      "name": "3C产品价格监测",
+      "cat": "Work",
+      "blurb": "监测不同 3C 品牌商品价格，比价、波动与证据在同一条工作流。",
+      "live": "https://mcyo-yoyoyo.github.io/price/",
+      "cover": "covers/price.png"
+    },
+    {
+      "id": "idms",
+      "name": "IDMS - 智能分货全链路管理系统",
+      "cat": "Work",
+      "blurb": "计划、分货到执行闭环，收成一张可操作的数字台面。",
+      "live": "https://mcyo-yoyoyo.github.io/IDMS/",
+      "cover": "covers/idms.png"
+    },
+    {
+      "id": "operation",
+      "name": "OpenClaw 电商自动化创品工作站",
+      "cat": "Work",
+      "blurb": "用 Agent 把选品、内容与运营串成可预览中台。",
+      "live": "https://mcyo-yoyoyo.github.io/operation/",
+      "cover": "covers/operation.png"
+    },
+    {
+      "id": "meals",
+      "name": "Zianna点餐助手",
+      "cat": "Family",
+      "blurb": "给孩子订一日三餐。菜单、偏好与日常点餐收成轻量现场。",
+      "live": "https://mcyo-yoyoyo.github.io/meals/",
+      "cover": "covers/meals.png"
+    },
+    {
+      "id": "ilearning",
+      "name": "AI趣学英语 - demo",
+      "cat": "Family",
+      "blurb": "用对话和趣味关卡把英语练习做成可立即打开的现场。",
+      "live": "https://mcyo-yoyoyo.github.io/ilearning/",
+      "cover": "covers/ilearning.png"
+    },
+    {
+      "id": "math100",
+      "name": "Zianna Math100",
+      "cat": "Family",
+      "blurb": "小朋友的数学 100 分。用一小局游戏把计算练成手感。",
+      "live": "https://mcyo-yoyoyo.github.io/math100/",
+      "cover": "covers/math100.png"
+    },
+    {
+      "id": "zianna",
+      "name": "Zianna伴学",
+      "cat": "Family",
+      "blurb": "vibe learning，love growing。把学习做成可被爱护的日常。",
+      "live": "https://zianna-study.vercel.app",
+      "cover": "covers/zianna.png"
+    },
+    {
+      "id": "100game",
+      "name": "AI猜数字游戏",
+      "cat": "Family",
+      "blurb": "一款小而完整的猜数字游戏。验证一个想法能否在一页里被玩起来。",
+      "live": "https://mcyo-yoyoyo.github.io/100game/",
+      "cover": "covers/100game.png"
+    },
+    {
+      "id": "oppa",
+      "name": "欧巴工作室-您的专属美发顾问",
+      "cat": "Life",
+      "blurb": "造型沟通、预约与服务记忆做成可安装的伙伴。",
+      "live": "https://mcyo-yoyoyo.github.io/oppa/",
+      "cover": "covers/oppa.png"
+    },
+    {
+      "id": "vibe",
+      "name": "Mcyo Insight 2026",
+      "cat": "Life",
+      "blurb": "vibe coding 的计时与洞察。记录想法如何迅速做成可运行的东西。",
+      "live": "https://mcyo-yoyoyo.github.io/vibe/",
+      "cover": "covers/vibe.png"
+    }
+  ]
+}

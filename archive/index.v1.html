@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数智·变革 | Mcyo个人站</title>
+    
+    <!-- 核心库引入 -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- LeanCloud SDK -->
+    <script src="https://registry.npmmirror.com/leancloud-storage/4.15.0/files/dist/av-min.js"></script>
+
+    <style>
+        body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background-color: #f8f9fa; -webkit-tap-highlight-color: transparent; }
+        .editor-content { min-height: 400px; outline: none; }
+        .prose h1 { font-size: 1.8em; font-weight: bold; margin: 1em 0; color: #111827; }
+        .prose h2 { font-size: 1.5em; font-weight: bold; margin: 1.5em 0 0.5em; color: #1e3a8a; }
+        .prose p { margin-bottom: 1em; line-height: 1.8; color: #374151; }
+        .prose img { max-width: 100%; border-radius: 0.75rem; margin: 1.5rem 0; }
+        .loading-dot { animation: blink 1.4s infinite both; }
+        @keyframes blink { 0% { opacity: .2; } 20% { opacity: 1; } 100% { opacity: .2; } }
+        
+        /* 编辑器专用样式 */
+        .toolbar-btn { padding: 0.5rem; border-radius: 0.25rem; transition: all 0.2s; display: flex; align-items: center; justify-content: center; min-width: 32px; cursor: pointer; }
+        .toolbar-btn:hover { background-color: #f3f4f6; }
+        [contenteditable]:empty:before { content: attr(placeholder); color: #9ca3af; pointer-events: none; }
+        
+        /* 动画 */
+        .page-enter { animation: slideIn 0.4s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // ==================== 配置中心 ====================
+        const ADMIN_EMAIL = "ly-fighting@163.com"; 
+
+        const LEANCLOUD_CONFIG = {
+            appId: "Fks113eI3yEDO04W2CJ23d5f-gzGzoHsz", 
+            appKey: "OlWMWKIhgyeYYdNwonZCIuFh",
+            serverURL: "https://fks113ei.lc-cn-n1-shared.com" 
+        };
+
+        // 安全初始化 LeanCloud
+        const initLeanCloud = () => {
+            if (typeof AV !== 'undefined' && !window.AV_INITIALIZED) {
+                try {
+                    AV.init(LEANCLOUD_CONFIG);
+                    window.AV_INITIALIZED = true;
+                    return true;
+                } catch (e) {
+                    console.error("LeanCloud Init Error", e);
+                    return false;
+                }
+            }
+            return typeof AV !== 'undefined';
+        };
+
+        // 图标组件
+        const Icons = {
+            Lock: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>,
+            Edit: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
+            Delete: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
+            Warning: () => <svg className="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
+            Bold: () => <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8 11h4.5a2.5 2.5 0 1 0 0-5H8v5Zm10 4.5a4.5 4.5 0 0 1-4.5 4.5H6V4h6.5a4.5 4.5 0 0 1 3.256 7.606A4.498 4.498 0 0 1 18 15.5ZM8 13v5h5.5a2.5 2.5 0 1 0 0-5H8Z"/></svg>,
+            Image: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>,
+            Back: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+        };
+
+        // 个人打赏/赞赏组件
+        const SupportSection = () => {
+          const [isOpen, setIsOpen] = React.useState(false);
+          const [payMethod, setPayMethod] = React.useState('wechat'); // 'wechat' 或 'alipay'
+
+          // 二维码图片配置（请替换为你自己的真实二维码图片链接或Base64）
+          const QR_CODES = {
+            wechat: "https://raw.githubusercontent.com/mcyo-yoyoyo/LY/main/Wechat.png", // 微信收款码地址
+            alipay: "https://raw.githubusercontent.com/mcyo-yoyoyo/LY/main/Ailpay.jpg"  // 支付宝收款码地址
+          };
+
+          // 图标组件
+          const X = (props) => (
+            <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          );
+          
+          const Heart = (props) => (
+            <svg {...props} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="0">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          );
+          
+          const Coffee = (props) => (
+            <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+              <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+              <path d="M6 1v3"/>
+              <path d="M10 1v3"/>
+              <path d="M14 1v3"/>
+            </svg>
+          );
+
+          return (
+            <>
+              {/* 1. 右下角悬浮打赏按钮 */}
+              <div className="fixed bottom-8 right-8 z-[90]">
+                <button
+                  onClick={() => setIsOpen(true)}
+                  className="group flex h-14 w-14 items-center justify-center rounded-full bg-red-500 text-white shadow-lg shadow-red-500/30 transition-all hover:scale-110 hover:bg-red-600 active:scale-95"
+                >
+                  <div className="flex flex-col items-center leading-none">
+                    <Heart className="h-5 w-5 fill-current mb-0.5 group-hover:animate-pulse" />
+                    <span className="text-[10px] font-bold">赏</span>
+                  </div>
+                </button>
+              </div>
+
+              {/* 2. 打赏弹窗遮罩 */}
+              {isOpen && (
+                <div 
+                  className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-300"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {/* 3. 弹窗卡片 */}
+                  <div 
+                    className="relative w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-2xl animate-in zoom-in duration-300"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    {/* 关闭按钮 */}
+                    <button 
+                      onClick={() => setIsOpen(false)}
+                      className="absolute right-4 top-4 rounded-full p-2 text-gray-400 hover:bg-gray-100 transition-colors"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+
+                    {/* 头部装饰 */}
+                    <div className="bg-red-50 p-8 text-center">
+                      <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-red-500 shadow-inner">
+                        <Coffee className="h-8 w-8 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900">请作者喝杯咖啡</h3>
+                      <p className="mt-2 text-sm text-gray-500">如果内容对您有帮助，欢迎随缘赞赏</p>
+                    </div>
+
+                    {/* 支付内容区 */}
+                    <div className="p-6">
+                      {/* 支付方式切换 */}
+                      <div className="mb-6 flex rounded-xl bg-gray-100 p-1">
+                        <button
+                          onClick={() => setPayMethod('wechat')}
+                          className={`flex-1 rounded-lg py-2 text-xs font-bold transition-all ${
+                            payMethod === 'wechat' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-400'
+                          }`}
+                        >
+                          微信支付
+                        </button>
+                        <button
+                          onClick={() => setPayMethod('alipay')}
+                          className={`flex-1 rounded-lg py-2 text-xs font-bold transition-all ${
+                            payMethod === 'alipay' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'
+                          }`}
+                        >
+                          支付宝
+                        </button>
+                      </div>
+
+                      {/* 二维码展示区 */}
+                      <div className="flex flex-col items-center justify-center p-4">
+                        <div className="relative mb-4 aspect-square w-48 overflow-hidden rounded-xl border-4 border-gray-50 bg-gray-50 shadow-inner">
+                          <img 
+                            src={QR_CODES[payMethod]} 
+                            alt={`${payMethod} QR Code`}
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              e.target.src = "https://via.placeholder.com/200?text=Scan+to+Pay"; // 占位图
+                            }}
+                          />
+                        </div>
+                        <p className={`text-sm font-bold ${payMethod === 'wechat' ? 'text-green-600' : 'text-blue-600'}`}>
+                          扫码进行赞赏
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* 底部语 */}
+                    <div className="border-t border-gray-50 bg-gray-50/50 py-4 text-center">
+                      <p className="text-[10px] uppercase tracking-widest text-gray-300 font-medium">
+                        感谢每一份支持与认可
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        };
+
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [tab, setTab] = useState('blog');
+            const [posts, setPosts] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+            const [isLoginOpen, setIsLoginOpen] = useState(false);
+            const [isEditing, setIsEditing] = useState(false);
+            const [viewingPost, setViewingPost] = useState(null); // 新增：正在查看的文章详情
+            const [editData, setEditData] = useState({ title: '', content: '', category: '', id: null });
+            
+            const editorRef = useRef(null);
+            const isAdmin = user && user.getEmail() === ADMIN_EMAIL;
+
+            useEffect(() => {
+                const initialized = initLeanCloud();
+                if (initialized) {
+                    setUser(AV.User.current());
+                    fetchPosts();
+                } else {
+                    setError("SDK 加载失败，请刷新页面或检查网络链接");
+                    setLoading(false);
+                }
+            }, []);
+
+            const fetchPosts = async () => {
+                if (typeof AV === 'undefined') return;
+                setLoading(true);
+                try {
+                    const query = new AV.Query('Posts');
+                    query.descending('createdAt');
+                    const results = await query.find();
+                    const data = results.map(obj => ({
+                        id: obj.id,
+                        ...obj.toJSON(),
+                        timestamp: obj.createdAt
+                    }));
+                    setPosts(data);
+                    setLoading(false);
+                    setError(null);
+                } catch (err) {
+                    console.error("LeanCloud Query Error:", err);
+                    setError(err.message || "获取数据失败");
+                    setLoading(false);
+                }
+            };
+
+            const handleLogin = async (e) => {
+                e.preventDefault();
+                const email = e.target.email.value;
+                const password = e.target.password.value;
+                
+                try {
+                    await AV.User.loginWithEmail(email, password);
+                    setUser(AV.User.current());
+                    setIsLoginOpen(false);
+                } catch (err) {
+                    try {
+                        await AV.User.logIn(email, password);
+                        setUser(AV.User.current());
+                        setIsLoginOpen(false);
+                    } catch (finalErr) {
+                         alert("登录失败: " + finalErr.message);
+                    }
+                }
+            };
+
+            const handleLogout = () => {
+                AV.User.logOut();
+                setUser(null);
+            };
+
+            const execCmd = (cmd, val = null) => {
+                document.execCommand(cmd, false, val);
+                if(editorRef.current) editorRef.current.focus();
+            };
+
+            const insertImage = () => {
+                const url = prompt("请输入图片链接 (URL):");
+                if (url) execCmd('insertImage', url);
+            };
+
+            const savePost = async () => {
+                const currentContent = editorRef.current ? editorRef.current.innerHTML : editData.content;
+                if (!editData.title || !currentContent || currentContent === "<br>") {
+                    return alert("标题和内容不能为空");
+                }
+
+                try {
+                    const PostObject = AV.Object.extend('Posts');
+                    let post = editData.id ? AV.Object.createWithoutData('Posts', editData.id) : new PostObject();
+
+                    post.set('title', editData.title);
+                    post.set('content', currentContent);
+                    post.set('category', editData.category || '深度洞察');
+                    post.set('type', tab);
+
+                    await post.save();
+                    setIsEditing(false);
+                    setEditData({ title: '', content: '', category: '', id: null });
+                    fetchPosts();
+                } catch (e) {
+                    alert("发布失败: " + e.message);
+                }
+            };
+
+            const deletePost = async (id, e) => {
+                e.stopPropagation(); // 防止触发卡片点击详情
+                if(!confirm("确定删除吗？")) return;
+                try {
+                    const post = AV.Object.createWithoutData('Posts', id);
+                    await post.destroy();
+                    fetchPosts();
+                } catch (e) {
+                    alert("删除失败: " + e.message);
+                }
+            };
+
+            const editPostAction = (post, e) => {
+                e.stopPropagation(); // 防止触发卡片点击详情
+                setEditData(post);
+                setIsEditing(true);
+                setViewingPost(null);
+            };
+
+            // 关于我内容组件
+            const AboutSection = () => (
+                <div className="animate-in fade-in duration-700">
+                    <div className="bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-gray-100 mb-12">
+                        <div className="flex flex-col md:flex-row gap-12 items-start">
+                            <div className="w-full md:w-1/3">
+                                <div className="aspect-square bg-blue-900 rounded-2xl mb-6 flex items-center justify-center text-white text-4xl font-serif">
+                                    LY
+                                </div>
+                                <h1 className="text-3xl font-bold text-gray-900 mb-2">Mcyo</h1>
+                                <p className="text-blue-600 font-medium mb-6 text-lg">数字化转型专家 / 战略架构师</p>
+                                <div className="space-y-3 text-sm text-gray-500">
+                                    <p className="flex items-center"><span className="w-5 opacity-50">📍</span> 广东·深圳</p>
+                                    <p className="flex items-center"><span className="w-5 opacity-50">✉️</span> {ADMIN_EMAIL}</p>
+                                    <p className="flex items-center"><span className="w-5 opacity-50">💼</span> 16年+数字化全链路实战</p>
+                                </div>
+                            </div>
+                            <div className="w-full md:w-2/3 prose max-w-none">
+                                <h2 className="text-2xl font-bold text-gray-800 mb-6">理念：拥抱变革，数智新生</h2>
+                                <p>沉淀近20年全球顶尖科技企业商业模式深度研判经验，整合电子、汽车、家电、电商、会员运营等多领域核心思维体系，顶级商业认知赋能你的团队，洞见趋势，重塑增长。我深信数智化变革不仅是工具的替换，更是思维方式、流程逻辑乃至商业模式的彻底革新。</p>
+                                <div className="grid grid-cols-2 gap-4 mt-8">
+                                    <div className="p-4 bg-gray-50 rounded-xl">
+                                        <div className="text-blue-600 font-bold text-xl mb-1">16+</div>
+                                        <div className="text-xs text-gray-400">深耕数字化领域</div>
+                                    </div>
+                                    <div className="p-4 bg-gray-50 rounded-xl">
+                                        <div className="text-blue-600 font-bold text-xl mb-1">50+</div>
+                                        <div className="text-xs text-gray-400">大中型项目操盘</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-50">
+                            <h3 className="text-xl font-bold mb-6 flex items-center">
+                                <span className="w-2 h-6 bg-blue-600 rounded mr-3"></span>专业擅长
+                            </h3>
+                            <div className="space-y-6">
+                                <div>
+                                    <div className="flex justify-between text-sm mb-2"><span className="font-medium">数字化转型与业务变革</span><span className="text-blue-600">95%</span></div>
+                                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-blue-600 w-[95%]"></div></div>
+                                </div>
+                                <div>
+                                    <div className="flex justify-between text-sm mb-2"><span className="font-medium">商业画布与价值流设计</span><span className="text-blue-600">85%</span></div>
+                                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-blue-600 w-[85%]"></div></div>
+                                </div>
+                                <div>
+                                    <div className="flex justify-between text-sm mb-2"><span className="font-medium">营销服数字化与降本增效</span><span className="text-blue-600">90%</span></div>
+                                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-blue-600 w-[90%]"></div></div>
+                                </div>
+                                <div>
+                                    <div className="flex justify-between text-sm mb-2"><span className="font-medium">变革项目管理与产品化运作</span><span className="text-blue-600">100%</span></div>
+                                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-blue-600 w-[100%]"></div></div>
+                                </div>
+                               </div>
+                        </div>
+                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-50">
+                            <h3 className="text-xl font-bold mb-6 flex items-center">
+                                <span className="w-2 h-6 bg-blue-600 rounded mr-3"></span>行业经历
+                            </h3>
+                            <div className="space-y-6">
+                                <div className="flex gap-2">
+                                    <div className="text-gray-300 font-bold text-sm pt-1 w-12">消费品</div>
+                                    <div>
+                                        <div className="font-bold text-gray-800">AI + 自由顾问（待实现）</div>
+                                        <div className="text-xs text-gray-400">AI赋能企业数智化专项与企业变革</div>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <div className="text-blue-600 font-bold text-sm pt-1 w-12">电子</div>
+                                    <div>
+                                        <div className="font-bold text-gray-800">引领全场景智慧生活的全球科技先锋</div>
+                                        <div className="text-xs text-gray-400">从“科技产品”到“创新引领与万物互联”</div>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <div className="text-blue-600 font-bold text-sm pt-1 w-12">汽车</div>
+                                    <div>
+                                        <div className="font-bold text-gray-800">智慧重塑豪华的智能电动汽车领军者</div>
+                                        <div className="text-xs text-gray-400">从“传统造车”到“智慧出行与科技定义”</div>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <div className="text-blue-600 font-bold text-sm pt-1 w-12">家电</div>
+                                    <div>
+                                        <div className="font-bold text-gray-800">全球领先的全场景智慧家电产业集团</div>
+                                        <div className="text-xs text-gray-400">从“家电制造”到“生活美学与场景引领”</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // 新增：文章详情浏览组件
+          const PostDetailView = ({ post, onBack }) => {
+  const [copied, setCopied] = React.useState(false);
+  const [showWechatTip, setShowWechatTip] = React.useState(false);
+
+  // 复制链接功能
+  const handleCopyLink = () => {
+    const url = window.location.href;
+    const textArea = document.createElement("textarea");
+    textArea.value = url;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('无法复制链接', err);
+    }
+    document.body.removeChild(textArea);
+  };
+
+  // 修复分享图标组件
+  const CheckCircle2 = (props) => (
+    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <path d="m9 11 3 3 7-7" />
+    </svg>
+  );
+
+  const Copy = (props) => (
+    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+    </svg>
+  );
+
+  const Share2 = (props) => (
+    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <line x1="8.59" x2="15.42" y1="13.51" y2="17.49" />
+      <line x1="15.41" x2="8.59" y1="6.51" y2="10.49" />
+    </svg>
+  );
+
+  const X = (props) => (
+    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </svg>
+  );
+
+  return (
+    <div className="page-enter max-w-4xl mx-auto">
+      {/* 返回按钮 */}
+      <button
+        onClick={onBack}
+        className="flex items-center text-gray-400 hover:text-blue-600 mb-8 transition-colors group"
+      >
+        <span className="p-2 bg-white rounded-full shadow-sm mr-3 group-hover:bg-blue-50 transition-colors">
+          <Icons.Back />
+        </span>
+        <span className="text-sm font-bold tracking-widest uppercase">BACK TO LIST</span>
+      </button>
+
+      <article className="bg-white rounded-3xl p-6 md:p-12 shadow-sm border border-gray-100 relative">
+        <div className="mb-8">
+          <span className="inline-block bg-blue-50 text-blue-600 text-xs px-4 py-1.5 rounded-full font-bold uppercase tracking-wider mb-4">
+            {post.category || 'INSIGHT'}
+          </span>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
+            {post.title}
+          </h1>
+          
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-50 pb-8">
+            <div className="flex items-center text-gray-400 text-sm">
+              <span className="mr-4">Published on {post.timestamp ? new Date(post.timestamp).toLocaleDateString('zh-CN') : '...'}</span>
+              <span className="px-3 py-1 bg-gray-50 rounded-md text-[10px] text-gray-400 uppercase font-bold tracking-tighter">Verified Content</span>
+            </div>
+
+            {/* 新增：分享按钮组 */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleCopyLink}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 text-gray-500 hover:bg-gray-100 transition-all text-xs font-bold"
+              >
+                {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? '已复制' : '复制链接'}
+              </button>
+              <button
+                onClick={() => setShowWechatTip(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#07C160]/10 text-[#07C160] hover:bg-[#07C160]/20 transition-all text-xs font-bold"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                转发朋友圈
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 文章正文 */}
+        <div
+          className="prose max-w-none prose-blue prose-img:rounded-2xl prose-h2:text-2xl prose-p:text-gray-600 prose-p:leading-loose"
+          dangerouslySetInnerHTML={{ __html: post.content }}
+        ></div>
+
+        {/* 页脚 */}
+        <div className="mt-16 pt-8 border-t border-gray-50 flex justify-between items-center text-xs text-gray-300">
+          <p>© {new Date().getFullYear()} Mcyo Digital Transformation Insight</p>
+          <p className="uppercase tracking-widest">End of Article</p>
+        </div>
+      </article>
+
+      {/* 微信分享引导弹窗 */}
+      {showWechatTip && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={() => setShowWechatTip(false)}
+        >
+          <div className="relative w-full max-w-sm overflow-hidden rounded-2xl bg-white p-6 text-center shadow-2xl animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+            <button className="absolute right-4 top-4 text-gray-400" onClick={() => setShowWechatTip(false)}>
+              <X className="h-5 w-5" />
+            </button>
+            <div className="mb-4 flex justify-center">
+              <div className="rounded-full bg-[#07C160]/10 p-3"><Share2 className="h-8 w-8 text-[#07C160]" /></div>
+            </div>
+            <h3 className="mb-2 text-lg font-bold text-gray-900">分享到朋友圈</h3>
+            <p className="mb-6 text-sm text-gray-500">点击浏览器工具栏或微信右上角的 <span className="font-bold">"···"</span> 按钮，选择 <span className="font-bold text-[#07C160]">"分享到朋友圈"</span>。</p>
+            <button onClick={() => setShowWechatTip(false)} className="w-full rounded-xl bg-[#07C160] py-3 font-bold text-white">我知道了</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+            return (
+                <div className="min-h-screen pb-20">
+                    <nav className="bg-white/80 backdrop-blur-md border-b sticky top-0 z-50">
+                        <div className="max-w-5xl mx-auto px-4 h-16 flex justify-between items-center">
+                            <div className="text-[18px] font-bold text-blue-900 tracking-tighter cursor-pointer" onClick={() => {setTab('blog'); setViewingPost(null); setIsEditing(false);}}>EVOLUTION</div>
+                            <div className="flex space-x-6 md:space-x-10">
+                                {['blog', 'case', 'about'].map(t => (
+                                    <button 
+                                        key={t}
+                                        onClick={() => {setTab(t); setIsEditing(false); setViewingPost(null);}} 
+                                        className={`pb-1 border-b-2 transition-all font-medium uppercase text-sm tracking-widest ${tab === t && !viewingPost ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+                                    >
+                                        {t}
+                                    </button>
+                                ))}
+                            </div>
+                            <div>
+                                {isAdmin ? (
+                                    <div className="flex items-center space-x-3">
+                                        <span className="hidden md:block text-[10px] text-green-600 bg-green-50 px-2 py-1 rounded border border-green-100 uppercase">Admin</span>
+                                        <button onClick={handleLogout} className="text-gray-400 hover:text-red-500 transition"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg></button>
+                                    </div>
+                                ) : (
+                                    <button onClick={() => setIsLoginOpen(true)} className="text-gray-300 hover:text-blue-600 transition p-2"><Icons.Lock /></button>
+                                )}
+                            </div>
+                        </div>
+                    </nav>
+
+                    <main className="max-w-5xl mx-auto px-4 py-8 md:py-12">
+                        {error && tab !== 'about' && (
+                            <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start space-x-3 text-red-600 animate-bounce">
+                                <Icons.Warning />
+                                <div className="text-sm">
+                                    <p className="font-bold">环境异常</p>
+                                    <p>{error}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {viewingPost ? (
+                            <PostDetailView post={viewingPost} onBack={() => setViewingPost(null)} />
+                        ) : tab === 'about' ? <AboutSection /> : (
+                            <>
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+                                      <div>
+                                        <h2 className="text-2xl font-bold text-gray-800">{tab === 'blog' ? '数智变革，重塑增长新范式' : '实战案例，赋能企业跃迁路'}</h2>
+                                        <p className="text-gray-400 text-sm mt-1">{tab === 'blog' ? '记录数智化变革过程中的一点思考、困惑、感悟…' : '沉淀数智化变革过程中的最佳实践、洞察、案例…'}</p>
+                                      </div>
+                                    {isAdmin && !isEditing && (
+                                        <button onClick={() => setIsEditing(true)} className="w-full md:w-auto bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 transition shadow-lg flex items-center justify-center font-bold">
+                                            + 发布文章
+                                        </button>
+                                    )}
+                                </div>
+
+                                {loading ? (
+                                    <div className="text-center py-24 text-gray-300">
+                                        <div className="loading-dot text-4xl mb-4">...</div>
+                                        <p className="text-sm tracking-widest uppercase">Syncing Data</p>
+                                    </div>
+                                ) : isEditing ? (
+                                    <div className="bg-white p-4 md:p-8 rounded-2xl shadow-xl border border-blue-50 space-y-4 animate-in slide-in-from-bottom-4">
+                                        <input className="w-full p-4 border-none text-2xl font-bold outline-none placeholder:text-gray-200" placeholder="文章标题" value={editData.title} onChange={e => setEditData({...editData, title: e.target.value})} />
+                                        <input className="w-full px-4 text-blue-600 text-sm outline-none border-none placeholder:text-blue-200" placeholder="# 标签 (如: AI、数字化)" value={editData.category} onChange={e => setEditData({...editData, category: e.target.value})} />
+                                        
+                                        <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg border-b">
+                                            <button onClick={() => execCmd('bold')} className="toolbar-btn" title="加粗"><Icons.Bold /></button>
+                                            <button onClick={() => execCmd('formatBlock', 'h2')} className="toolbar-btn font-bold text-sm">H2</button>
+                                            <button onClick={() => execCmd('formatBlock', 'p')} className="toolbar-btn text-sm">P</button>
+                                            <button onClick={() => execCmd('foreColor', '#1d4ed8')} className="toolbar-btn text-blue-600">●</button>
+                                            <button onClick={() => execCmd('foreColor', '#374151')} className="toolbar-btn text-gray-700">●</button>
+                                            <button onClick={insertImage} className="toolbar-btn" title="插入图片链接"><Icons.Image /></button>
+                                            <div className="flex-1"></div>
+                                            <button onClick={() => execCmd('undo')} className="toolbar-btn">↶</button>
+                                        </div>
+
+                                        <div 
+                                            ref={editorRef}
+                                            className="editor-content p-4 prose max-w-none overflow-y-auto border-x border-b rounded-b-lg" 
+                                            contentEditable 
+                                            placeholder="在这里开始你的创作..."
+                                            dangerouslySetInnerHTML={{__html: editData.content}}
+                                        ></div>
+
+                                        <div className="flex justify-end space-x-4 pt-6">
+                                            <button onClick={() => setIsEditing(false)} className="px-6 py-2 text-gray-400 hover:text-gray-600 transition">取消</button>
+                                            <button onClick={savePost} className="bg-blue-600 text-white px-10 py-2 rounded-xl shadow-lg hover:bg-blue-700 transition font-bold">发布文章</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                        {posts.filter(p => p.type === tab).length > 0 ? (
+                                            posts.filter(p => p.type === tab).map(post => (
+                                                <div 
+                                                    key={post.id} 
+                                                    onClick={() => setViewingPost(post)}
+                                                    className="bg-white rounded-2xl border border-gray-50 hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group overflow-hidden cursor-pointer"
+                                                >
+                                                    <div className="p-6">
+                                                        <div className="flex justify-between items-start mb-4">
+                                                            <span className="bg-blue-50 text-blue-600 text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-wider">
+                                                                {post.category || 'INSIGHT'}
+                                                            </span>
+                                                            {isAdmin && (
+                                                                <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <button onClick={(e) => editPostAction(post, e)} className="p-2 bg-gray-50 text-blue-600 rounded-lg hover:bg-blue-100"><Icons.Edit /></button>
+                                                                    <button onClick={(e) => deletePost(post.id, e)} className="p-2 bg-gray-50 text-red-500 rounded-lg hover:bg-red-100"><Icons.Delete /></button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <h3 className="text-xl font-bold text-gray-800 mb-4 leading-tight group-hover:text-blue-600 transition-colors">{post.title}</h3>
+                                                        <div className="text-gray-500 text-sm leading-relaxed line-clamp-4 prose prose-sm mb-6" dangerouslySetInnerHTML={{__html: post.content}}></div>
+                                                        <div className="flex items-center justify-between text-[11px] text-gray-300 pt-4 border-t border-gray-50 font-medium">
+                                                            <span>{post.timestamp ? new Date(post.timestamp).toLocaleDateString('zh-CN') : '...'}</span>
+                                                            <span className="text-blue-500 font-bold opacity-0 group-hover:opacity-100 transition-all">VIEW DETAIL →</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="col-span-full py-32 text-center border-2 border-dashed border-gray-100 rounded-3xl">
+                                                <div className="text-gray-200 text-5xl mb-4">∅</div>
+                                                <p className="text-gray-300 tracking-widest text-sm uppercase">No Content Available</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </main>
+
+                    {isLoginOpen && (
+                        <div className="fixed inset-0 bg-blue-900/40 backdrop-blur-md flex items-center justify-center z-[100] p-4">
+                            <form onSubmit={handleLogin} className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm animate-in zoom-in duration-300">
+                                <div className="text-center mb-8">
+                                    <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"><Icons.Lock /></div>
+                                    <h3 className="text-2xl font-bold text-gray-800 tracking-tighter">SECURE LOGIN</h3>
+                                    <p className="text-xs text-gray-400 mt-2 uppercase tracking-widest font-medium">仅供管理员访问</p>
+                                </div>
+                                <div className="space-y-4">
+                                    <input name="email" type="email" placeholder="ADMIN EMAIL" className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm" required />
+                                    <input name="password" type="password" placeholder="PASSWORD" className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm" required />
+                                </div>
+                                <button type="submit" className="w-full bg-blue-900 text-white py-4 rounded-2xl font-bold mt-8 hover:bg-blue-800 transition shadow-xl tracking-widest text-sm uppercase">验证并进入</button>
+                                <button type="button" onClick={() => setIsLoginOpen(false)} className="w-full mt-4 text-gray-400 text-[10px] uppercase font-bold tracking-widest hover:text-gray-600 transition">Close</button>
+                            </form>
+                        </div>
+                    )}
+
+                    {/* 新增：打赏组件 */}
+                    <SupportSection />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
