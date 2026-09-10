@@ -390,13 +390,24 @@
       width: min(440px, 100%); padding: 28px; background: #1a1a1a; color: #f4f4f4;
       border: 1px solid rgba(255,255,255,.1); border-radius: 20px;
     }
+    .login-avatar {
+      width: 84px; height: 84px; border-radius: 50%; object-fit: cover;
+      margin: 0 auto 16px; display: block;
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 10px 28px rgba(0,0,0,.35);
+    }
     .field { margin-bottom: 14px; }
     .field label { display: block; font-size: 12px; color: #8a8a8a; margin-bottom: 6px; letter-spacing: .08em; }
-    .field input, .field textarea, .field select {
-      width: 100%; background: #111; color: #fff; border: 1px solid rgba(255,255,255,.1);
-      border-radius: 12px; padding: 12px 14px; outline: none; font: inherit;
+    .field input, .field textarea, .field select,
+    .studio-edit input, .studio-edit textarea, .studio-edit select,
+    .edit-sheet input, .edit-sheet textarea, .edit-sheet select,
+    .about-panel input, .about-panel textarea, .about-panel select {
+      width: 100%; background: #111 !important; color: #fff !important;
+      -webkit-text-fill-color: #fff; caret-color: #fff; color-scheme: dark;
+      border: 1px solid rgba(255,255,255,.12); border-radius: 12px;
+      padding: 12px 14px; outline: none; font: inherit;
     }
-    .field textarea { min-height: 96px; resize: vertical; }
+    .field textarea, .studio-edit textarea, .edit-sheet textarea { min-height: 96px; resize: vertical; }
     .studio-card { padding: 18px; transition: outline .15s ease, opacity .15s ease; }
     .studio-card.is-drag { opacity: .5; }
     .studio-card.is-over { outline: 1px dashed rgba(255,212,184,.45); }
@@ -424,6 +435,35 @@
     .cover-pick input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
     .ghost { background: transparent; border: 1px solid rgba(255,255,255,.14); color: #c8c8c8; border-radius: 999px; padding: 8px 14px; cursor: pointer; font: inherit; }
     .studio-stack > * + * { margin-top: 20px; }
+    .studio-tile { cursor: grab; user-select: none; }
+    .studio-tile.is-drag { opacity: .4; }
+    .studio-tile.is-over .work-media { box-shadow: 0 0 0 2px rgba(255,212,184,.55); }
+    .studio-tile.is-hidden-card .work-media { filter: grayscale(.2); }
+    .studio-hidden-badge {
+      position: absolute; top: 10px; right: 10px; z-index: 2;
+      font-size: 11px; letter-spacing: .08em; background: #111; color: #fff;
+      border: 1px solid rgba(255,255,255,.16); border-radius: 999px; padding: 4px 10px;
+    }
+    .studio-no-cover {
+      position: absolute; inset: 0; display: grid; place-items: center;
+      color: #8a8a8a; font-size: 13px;
+    }
+    .edit-sheet {
+      width: min(760px, 100%); max-height: min(92vh, 900px); overflow: auto;
+      padding: 28px; background: #161616; color: #fff;
+      border: 1px solid rgba(255,255,255,.12); border-radius: 20px;
+    }
+    .edit-sheet h3 { font-size: 22px; font-weight: 800; margin-bottom: 18px; }
+    .studio-edit .ink-xl {
+      font-size: clamp(28px, 4vw, 42px); font-weight: 800; letter-spacing: -.03em;
+    }
+    .studio-edit .ink-stat { font-size: 40px; font-weight: 900; letter-spacing: -.04em; }
+    .studio-edit .ink-kicker { font-size: 12px; letter-spacing: .22em; text-transform: uppercase; }
+    .studio-edit .ink-narrow { width: 96px !important; }
+    .studio-edit .ly-mark input {
+      width: 80%; text-align: center; font-size: inherit; font-weight: 900; padding: 8px;
+    }
+    .studio-edit .about-kicker-edit { margin-top: 10px; min-height: 72px; max-width: 42em; }
     footer.site-foot {
       border-top: 1px solid #2a2a2a; padding: 28px;
       display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
@@ -910,8 +950,10 @@
       const [ghToken, setGhToken] = useState(() => readGhToken());
       const [dragOverId, setDragOverId] = useState("");
       const [dragFromId, setDragFromId] = useState("");
+      const [editProjectId, setEditProjectId] = useState("");
       const [editData, setEditData] = useState({ title: "", content: "", category: "日记", id: null, file: null });
       const editorRef = useRef(null);
+      const dragMovedRef = useRef(false);
       const projectsRef = useRef(projects);
       const aboutRef = useRef(about);
       const postsRef = useRef(posts);
@@ -1241,6 +1283,8 @@
 
       const renderStudio = () => {
         if (!isAdmin) return <div className="empty-box">请先登录</div>;
+        const editP = projects.find(p => p.id === editProjectId);
+        const editI = projects.findIndex(p => p.id === editProjectId);
         return (
           <>
             <div className="page-head flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
@@ -1259,8 +1303,8 @@
             </div>
             <div className="filters" style={{marginBottom: 28, justifyContent:"flex-start"}}>
               <div className="filter-track">
-                {[["home","项目卡片"],["blogs","博客"],["about","关于我"]].map(([k,l]) => (
-                  <button key={k} className={studioPane===k ? "on" : ""} onClick={() => { setStudioPane(k); setIsEditing(false); setStatus(""); }}>{l}</button>
+                {[["home","Home"],["blogs","Blogs"],["about","About"]].map(([k,l]) => (
+                  <button key={k} className={studioPane===k ? "on" : ""} onClick={() => { setStudioPane(k); setIsEditing(false); setEditProjectId(""); setStatus(""); }}>{l}</button>
                 ))}
               </div>
             </div>
@@ -1271,126 +1315,170 @@
             {studioPane === "home" && (
               <div className="studio-stack">
                 <div className="flex justify-between items-center">
-                  <p className="about-muted text-sm">拖动手柄或改序号，可调整首页展示顺序。封面支持 PNG / JPG / GIF / WebP。</p>
+                  <p className="about-muted text-sm">拖动卡片改位置，点击卡片改内容。封面支持 PNG / JPG / GIF / WebP。</p>
                   <button className="ghost" data-cursor="hot" onClick={() => {
                     const id = "p" + Date.now().toString(36);
                     setProjects(prev => [...prev, { id, name: "新项目", cat: "Work", blurb: "", live: "https://", cover: "", hidden: false }]);
+                    setEditProjectId(id);
                   }}>+ 增加项目</button>
                 </div>
-                {projects.map((p, i) => (
-                  <div
-                    key={p.id}
-                    className={"about-panel studio-card" + (dragFromId===p.id ? " is-drag" : "") + (dragOverId===p.id ? " is-over" : "")}
-                    onDragOver={e => { e.preventDefault(); setDragOverId(p.id); }}
-                    onDragLeave={() => setDragOverId(cur => cur === p.id ? "" : cur)}
-                    onDrop={e => {
-                      e.preventDefault();
-                      const fromId = dragIdRef.current;
-                      const from = projectsRef.current.findIndex(x => x.id === fromId);
-                      const to = projectsRef.current.findIndex(x => x.id === p.id);
-                      dragIdRef.current = "";
-                      setDragOverId("");
-                      if (from >= 0 && to >= 0) moveProjectTo(from, to);
-                    }}
-                  >
-                    <div className="studio-order">
-                      <b>#{i + 1}</b>
-                      <span
-                        className="drag-handle"
-                        draggable
-                        onDragStart={() => { dragIdRef.current = p.id; setDragFromId(p.id); }}
-                        onDragEnd={() => { dragIdRef.current = ""; setDragFromId(""); setDragOverId(""); }}
-                      >拖动排序</span>
-                      <label className="about-muted text-xs">排到</label>
-                      <select value={i} onChange={e => moveProjectTo(i, Number(e.target.value))}>
-                        {projects.map((_, n) => <option key={n} value={n}>第 {n + 1} 位</option>)}
-                      </select>
-                    </div>
-                    <div className="studio-row">
-                      <div>
-                        <div className="cover-pick">
-                          {(p.localPreview || p.cover) ? <img src={p.localPreview || coverOf(p)} alt="" /> : <span className="about-muted text-xs">上传封面</span>}
-                          <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/apng" onChange={e => uploadCover(p.id, e.target.files && e.target.files[0])} />
-                        </div>
-                        <p className="text-xs about-muted mt-2">{uploadingId===p.id ? "上传中…" : (p.cover ? (p.cover.startsWith("data:") ? "本机封面" : p.cover) : "尚未上传")}{isMotionSrc(p.cover) ? " · 动图" : ""}</p>
+                <div className="work-grid">
+                  {projects.map((p) => (
+                    <div
+                      key={p.id}
+                      className={"work-card studio-tile" + (dragFromId===p.id ? " is-drag" : "") + (dragOverId===p.id ? " is-over" : "") + (p.hidden ? " is-hidden-card" : "")}
+                      role="button"
+                      tabIndex={0}
+                      draggable
+                      data-cursor="hot"
+                      onDragStart={() => { dragMovedRef.current = false; dragIdRef.current = p.id; setDragFromId(p.id); }}
+                      onDrag={() => { dragMovedRef.current = true; }}
+                      onDragEnd={() => { dragIdRef.current = ""; setDragFromId(""); setDragOverId(""); }}
+                      onDragOver={e => { e.preventDefault(); setDragOverId(p.id); }}
+                      onDragLeave={() => setDragOverId(cur => cur === p.id ? "" : cur)}
+                      onDrop={e => {
+                        e.preventDefault();
+                        const fromId = dragIdRef.current;
+                        const from = projectsRef.current.findIndex(x => x.id === fromId);
+                        const to = projectsRef.current.findIndex(x => x.id === p.id);
+                        dragIdRef.current = "";
+                        setDragOverId("");
+                        if (from >= 0 && to >= 0) moveProjectTo(from, to);
+                      }}
+                      onClick={() => {
+                        if (dragMovedRef.current) { dragMovedRef.current = false; return; }
+                        setEditProjectId(p.id);
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setEditProjectId(p.id);
+                        }
+                      }}
+                    >
+                      <div className="work-media">
+                        {(p.localPreview || p.cover) ? <img className="cover-img" src={p.localPreview || coverOf(p)} alt="" /> : <span className="studio-no-cover">点击换图</span>}
+                        {p.hidden && <span className="studio-hidden-badge">隐藏</span>}
                       </div>
-                      <div>
-                        <div className="field"><label>项目名称</label><input value={p.name} onChange={e => patchProject(p.id, { name: e.target.value })} /></div>
-                        <div className="field"><label>分类</label>
-                          <select value={p.cat} onChange={e => patchProject(p.id, { cat: e.target.value })}>
-                            {["Work","Family","Life"].map(c => <option key={c} value={c}>{c}</option>)}
-                          </select>
-                        </div>
-                        <div className="field"><label>简介</label><textarea value={p.blurb || ""} onChange={e => patchProject(p.id, { blurb: e.target.value })} /></div>
-                        <div className="field"><label>产品链接</label><input value={p.live || ""} onChange={e => patchProject(p.id, { live: e.target.value })} /></div>
-                        <div className="flex flex-wrap gap-2 items-center">
-                          <button className="ghost" onClick={() => moveProject(i, -1)}>上移</button>
-                          <button className="ghost" onClick={() => moveProject(i, 1)}>下移</button>
-                          <button className="ghost" onClick={() => moveProjectTo(i, 0)}>置顶</button>
-                          <button className="ghost" onClick={() => moveProjectTo(i, projects.length - 1)}>置底</button>
-                          <button className="ghost" onClick={() => patchProject(p.id, { hidden: !p.hidden })}>{p.hidden ? "显示" : "隐藏"}</button>
-                          <button className="ghost" onClick={() => { if (confirm("从首页列表移除这个项目？")) setProjects(prev => prev.filter(x => x.id !== p.id)); }}>删除</button>
-                        </div>
+                      <div className="work-cap">
+                        <span>{p.name}</span>
+                        <small>{p.cat}</small>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
 
             {studioPane === "about" && (
-              <div className="studio-stack">
-                <div className="about-panel studio-card">
-                  <div className="field"><label>页眉说明</label><textarea value={about.kicker} onChange={e => setAbout({ ...about, kicker: e.target.value })} /></div>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="field"><label>标识</label><input value={about.mark} onChange={e => setAbout({ ...about, mark: e.target.value })} /></div>
-                    <div className="field"><label>姓名</label><input value={about.name} onChange={e => setAbout({ ...about, name: e.target.value })} /></div>
-                    <div className="field"><label>角色</label><input value={about.role} onChange={e => setAbout({ ...about, role: e.target.value })} /></div>
-                    <div className="field"><label>地点</label><input value={about.location} onChange={e => setAbout({ ...about, location: e.target.value })} /></div>
-                    <div className="field"><label>邮箱</label><input value={about.email} onChange={e => setAbout({ ...about, email: e.target.value })} /></div>
-                    <div className="field"><label>履历一句</label><input value={about.experience} onChange={e => setAbout({ ...about, experience: e.target.value })} /></div>
+              <div className="studio-edit">
+                <div className="page-head">
+                  <h2>About</h2>
+                  <textarea className="about-kicker-edit" value={about.kicker} onChange={e => setAbout({ ...about, kicker: e.target.value })} />
+                </div>
+                <div className="about-wrap">
+                  <div className="about-panel">
+                    <div className="ly-mark"><input value={about.mark} onChange={e => setAbout({ ...about, mark: e.target.value })} /></div>
+                    <div className="mt-6 mb-2"><input className="ink-xl" value={about.name} onChange={e => setAbout({ ...about, name: e.target.value })} /></div>
+                    <input value={about.role} onChange={e => setAbout({ ...about, role: e.target.value })} />
+                    <div className="mt-6 space-y-2">
+                      <input value={about.location} onChange={e => setAbout({ ...about, location: e.target.value })} />
+                      <input value={about.email} onChange={e => setAbout({ ...about, email: e.target.value })} />
+                      <input value={about.experience} onChange={e => setAbout({ ...about, experience: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="about-panel mb-5">
+                      <input className="ink-kicker" value={about.ideaKicker} onChange={e => setAbout({ ...about, ideaKicker: e.target.value })} />
+                      <div className="mt-3 mb-3"><input className="ink-xl" value={about.ideaTitle} onChange={e => setAbout({ ...about, ideaTitle: e.target.value })} /></div>
+                      <div className="field"><label>渐变高亮词</label><input value={about.ideaHighlight} onChange={e => setAbout({ ...about, ideaHighlight: e.target.value })} /></div>
+                      <div className="text-4xl mb-5" style={{fontWeight:800}}>{highlightTitle(about.ideaTitle, about.ideaHighlight)}</div>
+                      <textarea style={{minHeight:140}} value={about.ideaBody} onChange={e => setAbout({ ...about, ideaBody: e.target.value })} />
+                      <div className="flex justify-between items-center mt-8 mb-3">
+                        <span className="about-muted text-xs tracking-widest uppercase">数据</span>
+                        <button className="ghost" onClick={() => setAbout({ ...about, stats: [...(about.stats||[]), { n: "0", label: "新指标" }] })}>+ 指标</button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        {(about.stats || []).map((s, i) => (
+                          <div key={i}>
+                            <input className="ink-stat" value={s.n} onChange={e => setAbout({ ...about, stats: about.stats.map((x,j) => j===i ? { ...x, n: e.target.value } : x) })} />
+                            <input className="mt-2" value={s.label} onChange={e => setAbout({ ...about, stats: about.stats.map((x,j) => j===i ? { ...x, label: e.target.value } : x) })} />
+                            <button className="ghost mt-2" onClick={() => setAbout({ ...about, stats: about.stats.filter((_,j) => j!==i) })}>删</button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-5">
+                      <div className="about-panel">
+                        <div className="flex justify-between items-center mb-6">
+                          <h3 className="text-2xl" style={{fontWeight:700}}>专业擅长</h3>
+                          <button className="ghost" onClick={() => setAbout({ ...about, skills: [...(about.skills||[]), { name: "新能力", value: "80%" }] })}>+ 能力</button>
+                        </div>
+                        {(about.skills || []).map((s, i) => (
+                          <div className="skill-row" key={i}>
+                            <div className="flex gap-2">
+                              <input value={s.name} onChange={e => setAbout({ ...about, skills: about.skills.map((x,j) => j===i ? { ...x, name: e.target.value } : x) })} />
+                              <input className="ink-narrow" value={s.value} onChange={e => setAbout({ ...about, skills: about.skills.map((x,j) => j===i ? { ...x, value: e.target.value } : x) })} />
+                              <button className="ghost" onClick={() => setAbout({ ...about, skills: about.skills.filter((_,j) => j!==i) })}>删</button>
+                            </div>
+                            <div className="bar"><i style={{width:s.value}}></i></div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="about-panel">
+                        <div className="flex justify-between items-center mb-6">
+                          <h3 className="text-2xl" style={{fontWeight:700}}>行业经历</h3>
+                          <button className="ghost" onClick={() => setAbout({ ...about, industries: [...(about.industries||[]), { k: "新行业", t: "标题", d: "说明" }] })}>+ 经历</button>
+                        </div>
+                        {(about.industries || []).map((row, i) => (
+                          <div className="mb-5" key={i}>
+                            <input className="ink-kicker mb-2" value={row.k} onChange={e => setAbout({ ...about, industries: about.industries.map((x,j) => j===i ? { ...x, k: e.target.value } : x) })} />
+                            <input className="mb-2" value={row.t} onChange={e => setAbout({ ...about, industries: about.industries.map((x,j) => j===i ? { ...x, t: e.target.value } : x) })} />
+                            <input value={row.d} onChange={e => setAbout({ ...about, industries: about.industries.map((x,j) => j===i ? { ...x, d: e.target.value } : x) })} />
+                            <button className="ghost mt-2" onClick={() => setAbout({ ...about, industries: about.industries.filter((_,j) => j!==i) })}>删除这段</button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="about-panel studio-card">
-                  <div className="field"><label>理念小标题</label><input value={about.ideaKicker} onChange={e => setAbout({ ...about, ideaKicker: e.target.value })} /></div>
-                  <div className="field"><label>理念标题</label><input value={about.ideaTitle} onChange={e => setAbout({ ...about, ideaTitle: e.target.value })} /></div>
-                  <div className="field"><label>渐变高亮词</label><input value={about.ideaHighlight} onChange={e => setAbout({ ...about, ideaHighlight: e.target.value })} /></div>
-                  <div className="field"><label>理念正文</label><textarea style={{minHeight:140}} value={about.ideaBody} onChange={e => setAbout({ ...about, ideaBody: e.target.value })} /></div>
-                </div>
-                <div className="about-panel studio-card">
-                  <div className="flex justify-between items-center mb-3"><h3 style={{fontWeight:700}}>数据</h3><button className="ghost" onClick={() => setAbout({ ...about, stats: [...(about.stats||[]), { n: "0", label: "新指标" }] })}>+ 指标</button></div>
-                  {(about.stats || []).map((s, i) => (
-                    <div key={i} className="grid md:grid-cols-2 gap-3 mb-3">
-                      <input value={s.n} onChange={e => setAbout({ ...about, stats: about.stats.map((x,j) => j===i ? { ...x, n: e.target.value } : x) })} />
-                      <div className="flex gap-2">
-                        <input value={s.label} onChange={e => setAbout({ ...about, stats: about.stats.map((x,j) => j===i ? { ...x, label: e.target.value } : x) })} />
-                        <button className="ghost" onClick={() => setAbout({ ...about, stats: about.stats.filter((_,j) => j!==i) })}>删</button>
+              </div>
+            )}
+
+            {editP && (
+              <div className="mask" onClick={() => setEditProjectId("")}>
+                <div className="edit-sheet" onClick={e => e.stopPropagation()}>
+                  <div className="flex justify-between items-start gap-4 mb-4">
+                    <h3>项目配置</h3>
+                    <button className="ghost" onClick={() => setEditProjectId("")}>关闭</button>
+                  </div>
+                  <div className="studio-row">
+                    <div>
+                      <div className="cover-pick">
+                        {(editP.localPreview || editP.cover) ? <img src={editP.localPreview || coverOf(editP)} alt="" /> : <span className="about-muted text-xs">换图片</span>}
+                        <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/apng" onChange={e => uploadCover(editP.id, e.target.files && e.target.files[0])} />
+                      </div>
+                      <p className="text-xs about-muted mt-2">{uploadingId===editP.id ? "上传中…" : (editP.cover ? (editP.cover.startsWith("data:") ? "本机封面" : editP.cover) : "尚未上传")}{isMotionSrc(editP.cover) ? " · 动图" : ""}</p>
+                    </div>
+                    <div>
+                      <div className="field"><label>项目名称</label><input value={editP.name} onChange={e => patchProject(editP.id, { name: e.target.value })} /></div>
+                      <div className="field"><label>分类</label>
+                        <select value={editP.cat} onChange={e => patchProject(editP.id, { cat: e.target.value })}>
+                          {["Work","Family","Life"].map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      <div className="field"><label>简介</label><textarea value={editP.blurb || ""} onChange={e => patchProject(editP.id, { blurb: e.target.value })} /></div>
+                      <div className="field"><label>产品链接</label><input value={editP.live || ""} onChange={e => patchProject(editP.id, { live: e.target.value })} /></div>
+                      <div className="flex flex-wrap gap-2 items-center">
+                        <button className="ghost" onClick={() => moveProject(editI, -1)}>上移</button>
+                        <button className="ghost" onClick={() => moveProject(editI, 1)}>下移</button>
+                        <button className="ghost" onClick={() => moveProjectTo(editI, 0)}>置顶</button>
+                        <button className="ghost" onClick={() => moveProjectTo(editI, projects.length - 1)}>置底</button>
+                        <button className="ghost" onClick={() => patchProject(editP.id, { hidden: !editP.hidden })}>{editP.hidden ? "显示" : "隐藏"}</button>
+                        <button className="ghost" onClick={() => { if (confirm("从首页列表移除这个项目？")) { setProjects(prev => prev.filter(x => x.id !== editP.id)); setEditProjectId(""); } }}>删除</button>
                       </div>
                     </div>
-                  ))}
-                </div>
-                <div className="about-panel studio-card">
-                  <div className="flex justify-between items-center mb-3"><h3 style={{fontWeight:700}}>专业擅长</h3><button className="ghost" onClick={() => setAbout({ ...about, skills: [...(about.skills||[]), { name: "新能力", value: "80%" }] })}>+ 能力</button></div>
-                  {(about.skills || []).map((s, i) => (
-                    <div key={i} className="grid md:grid-cols-2 gap-3 mb-3">
-                      <input value={s.name} onChange={e => setAbout({ ...about, skills: about.skills.map((x,j) => j===i ? { ...x, name: e.target.value } : x) })} />
-                      <div className="flex gap-2">
-                        <input value={s.value} onChange={e => setAbout({ ...about, skills: about.skills.map((x,j) => j===i ? { ...x, value: e.target.value } : x) })} />
-                        <button className="ghost" onClick={() => setAbout({ ...about, skills: about.skills.filter((_,j) => j!==i) })}>删</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="about-panel studio-card">
-                  <div className="flex justify-between items-center mb-3"><h3 style={{fontWeight:700}}>行业经历</h3><button className="ghost" onClick={() => setAbout({ ...about, industries: [...(about.industries||[]), { k: "新行业", t: "标题", d: "说明" }] })}>+ 经历</button></div>
-                  {(about.industries || []).map((row, i) => (
-                    <div key={i} className="mb-4">
-                      <div className="field"><label>行业</label><input value={row.k} onChange={e => setAbout({ ...about, industries: about.industries.map((x,j) => j===i ? { ...x, k: e.target.value } : x) })} /></div>
-                      <div className="field"><label>标题</label><input value={row.t} onChange={e => setAbout({ ...about, industries: about.industries.map((x,j) => j===i ? { ...x, t: e.target.value } : x) })} /></div>
-                      <div className="field"><label>说明</label><input value={row.d} onChange={e => setAbout({ ...about, industries: about.industries.map((x,j) => j===i ? { ...x, d: e.target.value } : x) })} /></div>
-                      <button className="ghost" onClick={() => setAbout({ ...about, industries: about.industries.filter((_,j) => j!==i) })}>删除这段</button>
-                    </div>
-                  ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -1482,7 +1570,7 @@
             <div className="mask" onClick={() => setIsLoginOpen(false)}>
               <form onSubmit={handleLogin} className="login-card" onClick={e => e.stopPropagation()}>
                 <div className="text-center mb-6">
-                  <div className="w-16 h-16 mx-auto mb-4 grid place-items-center" style={{border:"1px solid rgba(255,255,255,.12)", borderRadius:16}}><Icons.Lock /></div>
+                  <img className="login-avatar" src="covers/avatar.jpg" alt="" />
                   <h3 className="text-3xl" style={{fontWeight:800}}>Studio Login</h3>
                   <p className="text-xs tracking-[0.18em] uppercase mt-2 about-muted">仅供管理员访问</p>
                 </div>
