@@ -397,7 +397,23 @@
       border-radius: 12px; padding: 12px 14px; outline: none; font: inherit;
     }
     .field textarea { min-height: 96px; resize: vertical; }
-    .studio-card { padding: 18px; }
+    .studio-card { padding: 18px; transition: outline .15s ease, opacity .15s ease; }
+    .studio-card.is-drag { opacity: .5; }
+    .studio-card.is-over { outline: 1px dashed rgba(255,212,184,.45); }
+    .studio-order {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px;
+    }
+    .studio-order b { font-size: 13px; letter-spacing: .08em; color: #8ee8d8; }
+    .drag-handle {
+      cursor: grab; user-select: none; color: #8a8a8a; padding: 4px 8px;
+      border: 1px solid rgba(255,255,255,.12); border-radius: 999px; font-size: 12px;
+    }
+    .studio-order select {
+      background: #111; color: #fff; border: 1px solid rgba(255,255,255,.12);
+      border-radius: 999px; padding: 6px 10px;
+    }
+    .status-ok { color: #8ee8d8; font-size: 14px; }
+    .status-err { color: #ffb38a; font-size: 14px; }
     .studio-row { display: grid; grid-template-columns: 220px 1fr; gap: 18px; align-items: start; }
     .cover-pick {
       aspect-ratio: 4 / 3; border-radius: 16px; overflow: hidden; background: #111;
@@ -562,17 +578,17 @@
 
     const PROJECTS = [
       { id: "ba", name: "友为 · 从战略到路标", cat: "Work", blurb: "AI Business Architect。从经营战略走到可落地的变革路标。", live: "https://mcyo-yoyoyo.github.io/BA/" },
-      { id: "ebi", name: "电商数智驾驶舱", cat: "Work", blurb: "电商业务总监的移动数字座舱。经营指标、节奏与决策压进一块屏幕。", live: "https://mcyo-yoyoyo.github.io/EBI/" },
-      { id: "price", name: "3C产品价格监测", cat: "Work", blurb: "监测不同 3C 品牌商品价格，比价、波动与证据在同一条工作流。", live: "https://mcyo-yoyoyo.github.io/price/" },
-      { id: "idms", name: "IDMS - 智能分货全链路管理系统", cat: "Work", blurb: "计划、分货到执行闭环，收成一张可操作的数字台面。", live: "https://mcyo-yoyoyo.github.io/IDMS/" },
-      { id: "operation", name: "OpenClaw 电商自动化创品工作站", cat: "Work", blurb: "用 Agent 把选品、内容与运营串成可预览中台。", live: "https://mcyo-yoyoyo.github.io/operation/" },
-      { id: "meals", name: "Zianna点餐助手", cat: "Family", blurb: "给孩子订一日三餐。菜单、偏好与日常点餐收成轻量现场。", live: "https://mcyo-yoyoyo.github.io/meals/" },
-      { id: "ilearning", name: "AI趣学英语 - demo", cat: "Family", blurb: "用对话和趣味关卡把英语练习做成可立即打开的现场。", live: "https://mcyo-yoyoyo.github.io/ilearning/" },
+      { id: "ebi", name: "电商数智驾驶舱Demo", cat: "Work", blurb: "电商业务总监的移动数字座舱。经营指标、节奏与决策压进一块屏幕。", live: "https://mcyo-yoyoyo.github.io/EBI/" },
+      { id: "price", name: "3C产品价格趋势监测 demo", cat: "Work", blurb: "监测不同 3C 品牌商品价格，比价、波动与证据在同一条工作流。", live: "https://mcyo-yoyoyo.github.io/price/" },
+      { id: "idms", name: "IDMS 智能分货 demo", cat: "Work", blurb: "计划、分货到执行闭环，收成一张可操作的数字台面。", live: "https://mcyo-yoyoyo.github.io/IDMS/" },
+      { id: "operation", name: "电商自动创品工作站 demo", cat: "Work", blurb: "用 Agent 把选品、内容与运营串成可预览中台。", live: "https://mcyo-yoyoyo.github.io/operation/" },
+      { id: "oppa", name: "欧巴工作室-闲侠时光", cat: "Life", blurb: "造型沟通、预约与服务记忆做成可安装的伙伴。", live: "https://mcyo-yoyoyo.github.io/oppa/" },
+      { id: "vibe", name: "Mcyo Insight 2026", cat: "Life", blurb: "vibe coding 的计时与洞察。记录想法如何迅速做成可运行的东西。", live: "https://mcyo-yoyoyo.github.io/vibe/" },
+      { id: "100game", name: "数字100炸弹💣", cat: "Family", blurb: "一款小而完整的猜数字游戏。验证一个想法能否在一页里被玩起来。", live: "https://mcyo-yoyoyo.github.io/100game/" },
+      { id: "meals", name: "Zianna美好食光", cat: "Family", blurb: "给孩子订一日三餐。菜单、偏好与日常点餐收成轻量现场。", live: "https://mcyo-yoyoyo.github.io/meals/" },
+      { id: "ilearning", name: "Zianna趣学英语 demo", cat: "Family", blurb: "用对话和趣味关卡把英语练习做成可立即打开的现场。", live: "https://mcyo-yoyoyo.github.io/ilearning/" },
       { id: "math100", name: "Zianna Math100", cat: "Family", blurb: "小朋友的数学 100 分。用一小局游戏把计算练成手感。", live: "https://mcyo-yoyoyo.github.io/math100/" },
-      { id: "zianna", name: "Zianna伴学", cat: "Family", blurb: "vibe learning，love growing。把学习做成可被爱护的日常。", live: "https://zianna-study.vercel.app" },
-      { id: "100game", name: "AI猜数字游戏", cat: "Family", blurb: "一款小而完整的猜数字游戏。验证一个想法能否在一页里被玩起来。", live: "https://mcyo-yoyoyo.github.io/100game/" },
-      { id: "oppa", name: "欧巴工作室-您的专属美发顾问", cat: "Life", blurb: "造型沟通、预约与服务记忆做成可安装的伙伴。", live: "https://mcyo-yoyoyo.github.io/oppa/" },
-      { id: "vibe", name: "Mcyo Insight 2026", cat: "Life", blurb: "vibe coding 的计时与洞察。记录想法如何迅速做成可运行的东西。", live: "https://mcyo-yoyoyo.github.io/vibe/" }
+      { id: "zianna", name: "Zianna伴学成长 demo", cat: "Family", blurb: "vibe learning，love growing。把学习做成可被爱护的日常。", live: "https://zianna-study.vercel.app" }
     ];
     const CATS = ["All", "Work", "Family", "Life"];
     const DEFAULT_PROJECTS = PROJECTS.map(p => ({ ...p, cover: `covers/${p.id}.png` }));
@@ -601,12 +617,23 @@
       const src = p.cover || `covers/${p.id}.png`;
       return p.coverRev ? `${src}${src.includes("?") ? "&" : "?"}v=${p.coverRev}` : src;
     };
+    const extOf = (file) => {
+      const t = (file.type || "").toLowerCase();
+      if (t.includes("gif")) return "gif";
+      if (t.includes("webp")) return "webp";
+      if (t.includes("png") || t.includes("apng")) return "png";
+      if (t.includes("jpeg") || t.includes("jpg")) return "jpg";
+      const n = (file.name || "").split(".").pop().toLowerCase();
+      if (["gif","webp","png","jpg","jpeg"].includes(n)) return n === "jpeg" ? "jpg" : n;
+      return "png";
+    };
     const fileToDataUrl = (file) => new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result || ""));
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
+    const fileToB64 = (file) => fileToDataUrl(file).then(s => String(s).split(",")[1] || "");
     const highlightTitle = (title, word) => {
       if (!title) return "";
       if (!word || !title.includes(word)) return title;
@@ -623,6 +650,87 @@
         } catch (e) {}
       }
       return null;
+    };
+
+    const GH_TOKEN_KEY = "ly_gh_token";
+    const toB64 = (s) => btoa(unescape(encodeURIComponent(s)));
+    const readGhToken = () => {
+      try { return localStorage.getItem(GH_TOKEN_KEY) || sessionStorage.getItem(GH_TOKEN_KEY) || ""; }
+      catch (e) { return ""; }
+    };
+    const writeGhToken = (t) => {
+      try {
+        if (t) localStorage.setItem(GH_TOKEN_KEY, t);
+        else localStorage.removeItem(GH_TOKEN_KEY);
+      } catch (e) {}
+    };
+    const ghFetch = async (path, token, opts = {}) => {
+      const res = await fetch(`https://api.github.com/repos/${GH.owner}/${GH.repo}${path}`, {
+        ...opts,
+        headers: {
+          Accept: "application/vnd.github+json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(opts.headers || {})
+        }
+      });
+      if (!res.ok) {
+        let msg = res.statusText;
+        try { const j = await res.json(); msg = j.message || msg; } catch (e) {}
+        throw new Error(msg);
+      }
+      return res.status === 204 ? null : res.json();
+    };
+    const ghSha = async (path, token) => {
+      try { const data = await ghFetch(`/contents/${path}?ref=${GH.branch}`, token); return data.sha; }
+      catch (e) { return null; }
+    };
+    const ghPutRaw = async (path, base64, message, token) => {
+      const sha = await ghSha(path, token);
+      return ghFetch(`/contents/${path}`, token, {
+        method: "PUT",
+        body: JSON.stringify({ message, content: base64, branch: GH.branch, ...(sha ? { sha } : {}) })
+      });
+    };
+    const ghPut = async (path, content, message, token) => ghPutRaw(path, toB64(content), message, token);
+    const ghWriteFile = async (path, base64, message, token) => {
+      const bytes = Math.ceil((base64 || "").length * 0.75);
+      if (bytes < 700000) return ghPutRaw(path, base64, message, token);
+      const ref = await ghFetch(`/git/ref/heads/${GH.branch}`, token);
+      const commitSha = ref.object.sha;
+      const commit = await ghFetch(`/git/commits/${commitSha}`, token);
+      const blob = await ghFetch(`/git/blobs`, token, {
+        method: "POST",
+        body: JSON.stringify({ content: base64, encoding: "base64" })
+      });
+      const tree = await ghFetch(`/git/trees`, token, {
+        method: "POST",
+        body: JSON.stringify({
+          base_tree: commit.tree.sha,
+          tree: [{ path, mode: "100644", type: "blob", sha: blob.sha }]
+        })
+      });
+      const newCommit = await ghFetch(`/git/commits`, token, {
+        method: "POST",
+        body: JSON.stringify({ message, tree: tree.sha, parents: [commitSha] })
+      });
+      await ghFetch(`/git/refs/heads/${GH.branch}`, token, {
+        method: "PATCH",
+        body: JSON.stringify({ sha: newCommit.sha })
+      });
+      return newCommit;
+    };
+    const ghDel = async (path, message, token) => {
+      const sha = await ghSha(path, token);
+      if (!sha) return;
+      return ghFetch(`/contents/${path}`, token, {
+        method: "DELETE",
+        body: JSON.stringify({ message, sha, branch: GH.branch })
+      });
+    };
+    const cleanProject = (p) => {
+      const { coverRev, localPreview, ...rest } = p;
+      const cover = rest.cover && String(rest.cover).startsWith("data:") ? `covers/${rest.id}.png` : rest.cover;
+      return { ...rest, cover };
     };
 
     const Icons = {
@@ -799,12 +907,20 @@
       const [viewingPost, setViewingPost] = useState(null);
       const [saving, setSaving] = useState(false);
       const [uploadingId, setUploadingId] = useState("");
+      const [ghToken, setGhToken] = useState(() => readGhToken());
+      const [dragOverId, setDragOverId] = useState("");
+      const [dragFromId, setDragFromId] = useState("");
       const [editData, setEditData] = useState({ title: "", content: "", category: "日记", id: null, file: null });
       const editorRef = useRef(null);
       const projectsRef = useRef(projects);
       const aboutRef = useRef(about);
+      const postsRef = useRef(posts);
+      const ghTokenRef = useRef(ghToken);
+      const dragIdRef = useRef("");
       projectsRef.current = projects;
       aboutRef.current = about;
+      postsRef.current = posts;
+      ghTokenRef.current = ghToken;
       const liveProjects = projects.filter(p => p.live && !p.hidden);
       const shown = liveProjects.filter(p => filter === "All" || p.cat === filter);
       const cats = CATS;
@@ -822,14 +938,28 @@
 
       const loadSite = async () => {
         const pj = await loadJSON("site/projects.json");
-        const overlay = storeGet("ly_projects_overlay");
-        if (overlay && Array.isArray(overlay) && overlay.length) setProjects(overlay);
-        else if (pj && Array.isArray(pj.projects)) setProjects(pj.projects);
-        else if (Array.isArray(pj)) setProjects(pj);
+        if (pj && Array.isArray(pj.projects) && pj.projects.length) setProjects(pj.projects);
+        else if (Array.isArray(pj) && pj.length) setProjects(pj);
+        else {
+          const overlay = storeGet("ly_projects_overlay");
+          if (overlay && Array.isArray(overlay) && overlay.length) setProjects(overlay);
+        }
         const ab = await loadJSON("site/about.json");
-        const abOv = storeGet("ly_about_overlay");
-        if (abOv) setAbout({ ...DEFAULT_ABOUT, ...abOv });
-        else if (ab) setAbout({ ...DEFAULT_ABOUT, ...ab });
+        if (ab) setAbout({ ...DEFAULT_ABOUT, ...ab });
+        else {
+          const abOv = storeGet("ly_about_overlay");
+          if (abOv) setAbout({ ...DEFAULT_ABOUT, ...abOv });
+        }
+      };
+
+      const requireToken = () => {
+        let t = (ghTokenRef.current || "").trim();
+        if (!t) {
+          t = (prompt("请粘贴有 LY 仓库写权限的 GitHub Token。只用于提交，不当登录账号。") || "").trim();
+          if (t) { setGhToken(t); writeGhToken(t); ghTokenRef.current = t; }
+        }
+        if (!t) throw new Error("还没有 GitHub Token，无法提交到仓库");
+        return t;
       };
 
       const patchProject = (id, patch) => setProjects(prev => prev.map(p => p.id === id ? { ...p, ...patch } : p));
@@ -840,16 +970,26 @@
         [next[i], next[j]] = [next[j], next[i]];
         return next;
       });
+      const moveProjectTo = (from, dest) => setProjects(prev => {
+        const d = Math.max(0, Math.min(Number(dest), prev.length - 1));
+        if (from === d) return prev;
+        const next = [...prev];
+        const [item] = next.splice(from, 1);
+        next.splice(d, 0, item);
+        return next;
+      });
 
       const saveProjects = async (next) => {
         if (!isAdmin) return alert("请先登录");
         const data = next || projectsRef.current;
         setSaving(true); setStatus("");
         try {
-          const clean = data.map(({ coverRev, localPreview, ...p }) => p);
-          const ok = storeSet("ly_projects_overlay", clean);
+          const token = requireToken();
+          const clean = data.map(cleanProject);
+          await ghPut("site/projects.json", JSON.stringify({ projects: clean }, null, 2), "studio: update home projects", token);
+          storeSet("ly_projects_overlay", clean);
           setProjects(clean);
-          setStatus(ok ? "项目已保存在本机。首页会马上更新。" : "已保存在本页会话里。本机长期存储空间不够（常见于大图），刷新后可能丢失。");
+          setStatus("项目已提交到 GitHub。首页顺序和文案会随仓库更新，换电脑也能看到。");
         } catch (e) { setStatus("保存失败：" + e.message); }
         setSaving(false);
       };
@@ -859,9 +999,11 @@
         const data = next || aboutRef.current;
         setSaving(true); setStatus("");
         try {
-          const ok = storeSet("ly_about_overlay", data);
+          const token = requireToken();
+          await ghPut("site/about.json", JSON.stringify(data, null, 2), "studio: update about", token);
+          storeSet("ly_about_overlay", data);
           setAbout(data);
-          setStatus(ok ? "About 已保存在本机。页面会马上更新。" : "已保存在本页会话里。本机长期存储空间不够，刷新后可能丢失。");
+          setStatus("About 已提交到 GitHub。页面会随仓库更新。");
         } catch (e) { setStatus("保存失败：" + e.message); }
         setSaving(false);
       };
@@ -870,17 +1012,21 @@
         if (!file) return;
         if (!isAdmin) return alert("请先登录");
         if (file.size > 12 * 1024 * 1024) return alert("图片太大。动图建议压缩到 12MB 以内，优先用 WebP 或 GIF。");
-        setUploadingId(id); setStatus("正在读取封面…");
+        setUploadingId(id); setStatus("正在上传封面到 GitHub…");
         try {
-          const url = await fileToDataUrl(file);
-          const next = projectsRef.current.map(p => p.id === id ? { ...p, cover: url, coverRev: Date.now() } : p);
+          const token = requireToken();
+          const ext = extOf(file);
+          const b64 = await fileToB64(file);
+          const path = `covers/${id}.${ext}`;
+          await ghWriteFile(path, b64, `studio: cover ${id}`, token);
+          const cover = `${path}?v=${Date.now()}`;
+          const preview = URL.createObjectURL(file);
+          const next = projectsRef.current.map(p => p.id === id ? { ...p, cover, coverRev: Date.now(), localPreview: preview } : p);
           setProjects(next);
           await saveProjects(next);
-          if (url.length > 5 * 1024 * 1024) {
-            setStatus("封面较大，可能写不进本机长期存储。本页仍会立刻更新，刷新后可能丢失。建议压缩到 2MB 以内。");
-          }
+          setStatus("封面已上传到仓库。GIF / WebP 会在首页直接播放。");
         } catch (e) {
-          setStatus("封面读取失败：" + e.message);
+          setStatus("封面上传失败：" + e.message);
         }
         setUploadingId("");
       };
@@ -901,15 +1047,13 @@
       const fetchPosts = async () => {
         setLoading(true);
         try {
-          const map = new Map();
-          const overlay = storeGet("ly_notes_overlay");
-          if (Array.isArray(overlay)) {
-            overlay.forEach(p => map.set(p.id, p));
+          const manifest = await loadJSON("notes/manifest.json");
+          if (Array.isArray(manifest)) {
+            setPosts([...manifest].sort((a,b) => String(b.date || "").localeCompare(String(a.date || ""))));
           } else {
-            const manifest = await loadJSON("notes/manifest.json");
-            (Array.isArray(manifest) ? manifest : []).forEach(p => map.set(p.id, p));
+            const overlay = storeGet("ly_notes_overlay") || [];
+            setPosts([...overlay].sort((a,b) => String(b.date || "").localeCompare(String(a.date || ""))));
           }
-          setPosts([...map.values()].sort((a,b) => String(b.date || "").localeCompare(String(a.date || ""))));
           setError(null);
         } catch (err) {
           setError(err.message || "读取文章失败");
@@ -957,10 +1101,13 @@
             return;
           }
           try {
-            if (file.size > 5 * 1024 * 1024) alert("图片较大。建议压缩后再插入，否则文章可能无法长期保存在本机。");
-            const url = await fileToDataUrl(file);
-            execCmd("insertImage", url);
-          } catch (e) { alert("图片读取失败: " + e.message); }
+            const token = requireToken();
+            const ext = extOf(file);
+            const b64 = await fileToB64(file);
+            const path = `notes/media/${Date.now().toString(36)}.${ext}`;
+            await ghWriteFile(path, b64, `studio: note image`, token);
+            execCmd("insertImage", path);
+          } catch (e) { alert("图片上传失败: " + e.message); }
         };
         pick.click();
       };
@@ -971,22 +1118,27 @@
         if (!isAdmin) return alert("请先登录");
         setSaving(true);
         try {
+          const token = requireToken();
           const date = editData.date || new Date().toISOString().slice(0,10);
           const id = editData.id || ("n" + Date.now().toString(36));
+          const file = `${id}.json`;
           const note = {
             id,
             title: editData.title,
             category: editData.category || "日记",
             type: "blog",
             date,
+            file,
             content: currentContent
           };
-          const next = [note, ...posts.filter(p => p.id !== note.id)];
-          const ok = storeSet("ly_notes_overlay", next);
+          const next = [note, ...postsRef.current.filter(p => p.id !== note.id)];
+          await ghPut(`notes/${file}`, JSON.stringify(note, null, 2), `studio: post ${id}`, token);
+          const manifest = next.map(({ content, ...meta }) => ({ ...meta, file: meta.file || `${meta.id}.json` }));
+          await ghPut("notes/manifest.json", JSON.stringify(manifest, null, 2), "studio: notes manifest", token);
+          storeSet("ly_notes_overlay", next);
           setPosts(next);
           setIsEditing(false);
           setEditData({ title: "", content: "", category: "日记", id: null, file: null });
-          if (!ok) alert("文章已显示在本页。本机长期存储空间不够，刷新后可能丢失。");
         } catch (e) {
           alert("发布失败: " + e.message);
         }
@@ -997,7 +1149,12 @@
         e.stopPropagation();
         if (!confirm("确定删除这篇日记吗？")) return;
         try {
-          const next = posts.filter(p => p.id !== post.id);
+          const token = requireToken();
+          const next = postsRef.current.filter(p => p.id !== post.id);
+          const file = post.file || `${post.id}.json`;
+          await ghDel(`notes/${file}`, `studio: delete post ${post.id}`, token);
+          const manifest = next.map(({ content, ...meta }) => ({ ...meta, file: meta.file || `${meta.id}.json` }));
+          await ghPut("notes/manifest.json", JSON.stringify(manifest, null, 2), "studio: notes manifest", token);
           storeSet("ly_notes_overlay", next);
           setPosts(next);
         } catch (err) { alert("删除失败: " + err.message); }
@@ -1027,7 +1184,7 @@
             <div className="page-head flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <h2>Blogs</h2>
-                <p>公开页会读仓库里的 notes/。登录后可在本机写新的一篇，改动只保存在浏览器。</p>
+                <p>文章存在仓库 notes/ 里。登录后写一篇，会提交到 GitHub，换电脑也能读到。</p>
               </div>
               {isAdmin && !isEditing && (
                 <button onClick={() => { setEditData({ title: "", content: "", category: "日记", id: null, file: null }); setIsEditing(true); }} className="pill-btn" data-cursor="hot">+ 写一篇</button>
@@ -1056,7 +1213,7 @@
                 <div ref={editorRef} className="editor-content p-4 prose max-w-none" contentEditable placeholder="从今天开始写…" dangerouslySetInnerHTML={{__html: editData.content}}></div>
                 <div className="flex justify-end space-x-4 pt-6 items-center">
                   <button onClick={() => setIsEditing(false)} className="about-muted">取消</button>
-                  <button onClick={savePost} className="pill-btn">{saving ? "保存中…" : "发布"}</button>
+                  <button onClick={savePost} className="pill-btn">{saving ? "提交中…" : "发布到 GitHub"}</button>
                 </div>
               </div>
             ) : (
@@ -1089,10 +1246,16 @@
             <div className="page-head flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
               <div>
                 <h2>Studio</h2>
-                <p>登录后可改首页卡片、写博客、编辑 About。改动保存在本机浏览器。</p>
+                <p>改首页卡片顺序、写博客、编辑 About。保存会提交到 GitHub，所有端读同一份仓库。</p>
               </div>
-              {studioPane === "home" && <button className="pill-btn" onClick={() => saveProjects()} disabled={saving} data-cursor="hot">{saving ? "写入中…" : "保存项目"}</button>}
-              {studioPane === "about" && <button className="pill-btn" onClick={() => saveAbout()} disabled={saving} data-cursor="hot">{saving ? "写入中…" : "保存 About"}</button>}
+              {studioPane === "home" && <button className="pill-btn" onClick={() => saveProjects()} disabled={saving} data-cursor="hot">{saving ? "提交中…" : "保存到 GitHub"}</button>}
+              {studioPane === "about" && <button className="pill-btn" onClick={() => saveAbout()} disabled={saving} data-cursor="hot">{saving ? "提交中…" : "保存到 GitHub"}</button>}
+            </div>
+            <div className="about-panel studio-card" style={{marginBottom: 22}}>
+              <div className="field" style={{marginBottom: 0}}>
+                <label>GitHub Token（只用于提交仓库，存在本机，不当登录）</label>
+                <input type="password" autoComplete="off" value={ghToken} placeholder="ghp_ 或 github_pat_ … 需要 LY 仓库 contents 写权限" onChange={e => { const t = e.target.value; setGhToken(t); writeGhToken(t); }} />
+              </div>
             </div>
             <div className="filters" style={{marginBottom: 28, justifyContent:"flex-start"}}>
               <div className="filter-track">
@@ -1108,21 +1271,48 @@
             {studioPane === "home" && (
               <div className="studio-stack">
                 <div className="flex justify-between items-center">
-                  <p className="about-muted text-sm">封面支持 PNG / JPG / GIF / WebP。点左侧预览即可更换，动图会在首页播放。</p>
+                  <p className="about-muted text-sm">拖动手柄或改序号，可调整首页展示顺序。封面支持 PNG / JPG / GIF / WebP。</p>
                   <button className="ghost" data-cursor="hot" onClick={() => {
                     const id = "p" + Date.now().toString(36);
                     setProjects(prev => [...prev, { id, name: "新项目", cat: "Work", blurb: "", live: "https://", cover: "", hidden: false }]);
                   }}>+ 增加项目</button>
                 </div>
                 {projects.map((p, i) => (
-                  <div key={p.id} className="about-panel studio-card">
+                  <div
+                    key={p.id}
+                    className={"about-panel studio-card" + (dragFromId===p.id ? " is-drag" : "") + (dragOverId===p.id ? " is-over" : "")}
+                    onDragOver={e => { e.preventDefault(); setDragOverId(p.id); }}
+                    onDragLeave={() => setDragOverId(cur => cur === p.id ? "" : cur)}
+                    onDrop={e => {
+                      e.preventDefault();
+                      const fromId = dragIdRef.current;
+                      const from = projectsRef.current.findIndex(x => x.id === fromId);
+                      const to = projectsRef.current.findIndex(x => x.id === p.id);
+                      dragIdRef.current = "";
+                      setDragOverId("");
+                      if (from >= 0 && to >= 0) moveProjectTo(from, to);
+                    }}
+                  >
+                    <div className="studio-order">
+                      <b>#{i + 1}</b>
+                      <span
+                        className="drag-handle"
+                        draggable
+                        onDragStart={() => { dragIdRef.current = p.id; setDragFromId(p.id); }}
+                        onDragEnd={() => { dragIdRef.current = ""; setDragFromId(""); setDragOverId(""); }}
+                      >拖动排序</span>
+                      <label className="about-muted text-xs">排到</label>
+                      <select value={i} onChange={e => moveProjectTo(i, Number(e.target.value))}>
+                        {projects.map((_, n) => <option key={n} value={n}>第 {n + 1} 位</option>)}
+                      </select>
+                    </div>
                     <div className="studio-row">
                       <div>
                         <div className="cover-pick">
                           {(p.localPreview || p.cover) ? <img src={p.localPreview || coverOf(p)} alt="" /> : <span className="about-muted text-xs">上传封面</span>}
                           <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/apng" onChange={e => uploadCover(p.id, e.target.files && e.target.files[0])} />
                         </div>
-                        <p className="text-xs about-muted mt-2">{uploadingId===p.id ? "读取中…" : (p.cover ? (p.cover.startsWith("data:") ? "本机封面" : p.cover) : "尚未上传")}{isMotionSrc(p.cover) ? " · 动图" : ""}</p>
+                        <p className="text-xs about-muted mt-2">{uploadingId===p.id ? "上传中…" : (p.cover ? (p.cover.startsWith("data:") ? "本机封面" : p.cover) : "尚未上传")}{isMotionSrc(p.cover) ? " · 动图" : ""}</p>
                       </div>
                       <div>
                         <div className="field"><label>项目名称</label><input value={p.name} onChange={e => patchProject(p.id, { name: e.target.value })} /></div>
@@ -1136,6 +1326,8 @@
                         <div className="flex flex-wrap gap-2 items-center">
                           <button className="ghost" onClick={() => moveProject(i, -1)}>上移</button>
                           <button className="ghost" onClick={() => moveProject(i, 1)}>下移</button>
+                          <button className="ghost" onClick={() => moveProjectTo(i, 0)}>置顶</button>
+                          <button className="ghost" onClick={() => moveProjectTo(i, projects.length - 1)}>置底</button>
                           <button className="ghost" onClick={() => patchProject(p.id, { hidden: !p.hidden })}>{p.hidden ? "显示" : "隐藏"}</button>
                           <button className="ghost" onClick={() => { if (confirm("从首页列表移除这个项目？")) setProjects(prev => prev.filter(x => x.id !== p.id)); }}>删除</button>
                         </div>
